@@ -45,30 +45,22 @@ struct BlackboxCallout : public BlackboxCalloutBase<BlackboxCallout> {
       if (auto genAttr = module->getAttrOfType<StringAttr>("generator")) {
         if (matcher.match(genAttr.getValue())) {
           auto moduleName = module.getVerilogModuleName();
-          std::vector<StringRef> args;
-
+          std::vector<std::string> args;
+          args.emplace_back(moduleName.str());
           for (auto attr : module.getAttrs()) {
-              attr.first.dump(); llvm::errs() << " ";
-              attr.second.dump(); llvm::errs() << " ";
-              StringRef flag = "-" + attr.first.str();
-              llvm::errs() << flag << "\n";
+            std::string flag = "-" + attr.first.str();
             if (auto strattr = attr.second.dyn_cast<StringAttr>()) {
-              args.push_back(flag);
-//              args.push_back("\"" + strattr.getValue().str() + "\"");
+              args.emplace_back(flag);
+              args.emplace_back("\"" + strattr.getValue().str() + "\"");
             } else if (auto intattr = attr.second.dyn_cast<IntegerAttr>()) {
-              args.push_back(flag);
-//              args.push_back(intattr.getValue().toString(10, false));              
-            } else {
-              llvm::errs() << "Unknown attribute type\n";
-              attr.first.dump();
-              attr.second.dump();
+              args.emplace_back(flag);
+              args.emplace_back(intattr.getValue().toString(10, false));              
             }
           }
-          llvm::errs() << "Executing: " << execString;
-          for (auto s : args)
-            llvm::errs() << " " << s;
-          llvm::errs() << "\n";
-          auto result = llvm::sys::ExecuteAndWait(execString, args);
+          std::vector<StringRef> stupidIndirection(args.size());
+          for (auto& s : args)
+            stupidIndirection.emplace_back(s);
+          auto result = llvm::sys::ExecuteAndWait(execString, stupidIndirection);
           llvm::errs() << "Exited, got " << result << "\n";
         }
       }
