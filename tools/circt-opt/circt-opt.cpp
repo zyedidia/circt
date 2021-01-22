@@ -25,6 +25,7 @@
 #include "circt/Dialect/LLHD/IR/LLHDDialect.h"
 #include "circt/Dialect/LLHD/Transforms/Passes.h"
 #include "circt/Dialect/RTL/RTLDialect.h"
+#include "circt/Dialect/RTL/RTLPasses.h"
 #include "circt/Dialect/SV/SVDialect.h"
 #include "circt/Dialect/StaticLogic/StaticLogic.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
@@ -118,6 +119,7 @@ int main(int argc, char **argv) {
   registry.insert<rtl::RTLDialect>();
   registry.insert<sv::SVDialect>();
 
+  rtl::registerBlackboxCalloutPass();
   llhd::initLLHDTransformationPasses();
   llhd::initLLHDToLLVMPass();
   llhd::registerFIRRTLToLLHDPasses();

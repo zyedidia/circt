@@ -42,4 +42,6 @@ include "RTLCombinatorial.td"
 include "RTLStatements.td"
 include "RTLStructure.td"
 
+include "RTLPasses.td"
+
 #endif // RTL_TD
