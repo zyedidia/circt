@@ -99,8 +99,8 @@ static cl::opt<bool>
                        cl::init(false));
 
 static cl::opt<bool>
-    inferWidths("infer-widths",
-                cl::desc("run the width inference pass on firrtl"),
+    disableInferWidths("disable-infer-widths",
+                cl::desc("do not run the width inference pass on firrtl"),
                 cl::init(false));
 
 enum OutputFormatKind {
@@ -177,7 +177,18 @@ processBuffer(std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
     assert(inputFormat == InputMLIRFile);
     module = parseSourceFile(sourceMgr, &context);
   }
-  // The input mlir file could be firrtl dialect so we might need to clean
+
+  if (!module)
+    return failure();
+
+  // Allow optimizations to run multithreaded.
+  context.enableMultithreading(isMultithreaded);
+
+  // Width inference creates canonicalization oppertunities
+  if (!disableInferWidths)
+    pm.nest<firrtl::CircuitOp>().addPass(firrtl::createInferWidthsPass());
+
+  // The input file could be firrtl or firrtl dialect so we might need to clean
   // things up.
   if (!disableLowerTypes) {
     pm.addNestedPass<firrtl::CircuitOp>(firrtl::createLowerFIRRTLTypesPass());
@@ -186,21 +197,13 @@ processBuffer(std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
     if (expandWhens)
       modulePM.addPass(firrtl::createExpandWhensPass());
   }
+
   // If we parsed a FIRRTL file and have optimizations enabled, clean it up.
   if (!disableOptimization) {
     auto &modulePM = pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>();
     modulePM.addPass(createCSEPass());
     modulePM.addPass(createSimpleCanonicalizerPass());
   }
-
-  if (!module)
-    return failure();
-
-  // Allow optimizations to run multithreaded.
-  context.enableMultithreading(isMultithreaded);
-
-  if (inferWidths)
-    pm.nest<firrtl::CircuitOp>().addPass(firrtl::createInferWidthsPass());
 
   if (inliner)
     pm.nest<firrtl::CircuitOp>().addPass(firrtl::createInlinerPass());
