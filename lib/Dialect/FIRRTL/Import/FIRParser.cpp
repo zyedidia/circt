@@ -101,6 +101,8 @@ struct GlobalFIRParserState {
     dontTouchAnnotation =
         getAnnotationOfClass(context, "firrtl.transforms.DontTouchAnnotation");
     emptyArrayAttr = ArrayAttr::get(context, {});
+    for (int i = 0, e = UIntTypeCache.size(); i < e; ++i)
+      UIntTypeCache[i] = UIntType::get(context, i);
   }
 
   /// The context we're parsing into.
@@ -186,6 +188,12 @@ struct GlobalFIRParserState {
                FileLineColLoc::get(filenameId, lineNo, columnNo);
   }
 
+  UIntType getUIntType(size_t width) {
+    if (width >= UIntTypeCache.size())
+      return UIntType::get(context, width);
+    return UIntTypeCache[width];
+  }
+
 private:
   GlobalFIRParserState(const GlobalFIRParserState &) = delete;
   void operator=(const GlobalFIRParserState &) = delete;
@@ -194,6 +202,8 @@ private:
   Identifier locatorFilenameCache;
   /// This is a single-entry cache for FileLineCol locations.
   FileLineColLoc fileLineColLocCache;
+
+  std::array<UIntType, 33> UIntTypeCache;
 };
 
 } // end anonymous namespace
@@ -783,7 +793,7 @@ ParseResult FIRParser::parseType(FIRRTLType &result, const Twine &message) {
     if (kind == FIRToken::kw_SInt)
       result = SIntType::get(getContext(), width);
     else if (kind == FIRToken::kw_UInt)
-      result = UIntType::get(getContext(), width);
+      result = getState().getUIntType(width);
     else {
       assert(kind == FIRToken::kw_Analog);
       result = AnalogType::get(getContext(), width);
@@ -2038,7 +2048,7 @@ ParseResult FIRStmtParser::parsePrintf() {
   if (formatStringRef.startswith("cover:")) {
     APInt constOne(1, 1, false);
     auto constTrue = builder.create<ConstantOp>(
-        info.getLoc(), UIntType::get(getContext(), 1), constOne);
+        info.getLoc(), getState().getUIntType(1), constOne);
     builder.create<CoverOp>(info.getLoc(), clock, condition, constTrue,
                             builder.getStringAttr(formatStrUnescaped));
     return success();
@@ -2046,7 +2056,7 @@ ParseResult FIRStmtParser::parsePrintf() {
   if (formatStringRef.startswith("assert:")) {
     APInt constOne(1, 1, false);
     auto constTrue = builder.create<ConstantOp>(
-        info.getLoc(), UIntType::get(getContext(), 1), constOne);
+        info.getLoc(), getState().getUIntType(1), constOne);
     builder.create<AssertOp>(info.getLoc(), clock, condition, constTrue,
                              builder.getStringAttr(formatStrUnescaped));
     return success();
@@ -2054,7 +2064,7 @@ ParseResult FIRStmtParser::parsePrintf() {
   if (formatStringRef.startswith("assume:")) {
     APInt constOne(1, 1, false);
     auto constTrue = builder.create<ConstantOp>(
-        info.getLoc(), UIntType::get(getContext(), 1), constOne);
+        info.getLoc(), getState().getUIntType(1), constOne);
     builder.create<AssumeOp>(info.getLoc(), clock, condition, constTrue,
                              builder.getStringAttr(formatStrUnescaped));
     return success();
