@@ -69,7 +69,7 @@ static bool hasKnownWidthIntTypesAndNonZeroResult(Operation *op) {
 
 /// Return true if this value is 1 bit UInt.
 static bool valueIsOneBitUInt(Value op) {
-  auto t = op.getType().cast<UIntType>();
+  auto t = op.getType().dyn_cast<UIntType>();
   if (!t || !t.hasWidth() || t.getWidth() != 1)
     return false;
   return true;
