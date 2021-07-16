@@ -33,6 +33,7 @@ void FIRRTLType::print(raw_ostream &os) const {
   };
 
   TypeSwitch<FIRRTLType>(*this)
+      .Case<AnchorType>([&](Type) { os << "anchor"; })
       .Case<ClockType>([&](Type) { os << "clock"; })
       .Case<ResetType>([&](Type) { os << "reset"; })
       .Case<AsyncResetType>([&](Type) { os << "asyncreset"; })
@@ -73,6 +74,7 @@ void FIRRTLType::print(raw_ostream &os) const {
 //===----------------------------------------------------------------------===//
 
 /// type
+///   ::= anchor
 ///   ::= clock
 ///   ::= reset
 ///   ::= asyncreset
@@ -91,90 +93,92 @@ static ParseResult parseType(FIRRTLType &result, DialectAsmParser &parser) {
 
   auto *context = parser.getBuilder().getContext();
 
-  if (name.equals("clock")) {
-    return result = ClockType::get(context), success();
-  } else if (name.equals("reset")) {
-    return result = ResetType::get(context), success();
-  } else if (name.equals("asyncreset")) {
-    return result = AsyncResetType::get(context), success();
-  } else if (name.equals("sint") || name.equals("uint") ||
-             name.equals("analog")) {
-    // Parse the width specifier if it exists.
-    int32_t width = -1;
-    if (!parser.parseOptionalLess()) {
-      if (parser.parseInteger(width) || parser.parseGreater())
-        return failure();
-
-      if (width < 0)
-        return parser.emitError(parser.getNameLoc(), "unknown width"),
-               failure();
-    }
-
-    if (name.equals("sint"))
-      result = SIntType::get(context, width);
-    else if (name.equals("uint"))
-      result = UIntType::get(context, width);
-    else {
-      assert(name.equals("analog"));
-      result = AnalogType::get(context, width);
-    }
-    return success();
-  } else if (name.equals("bundle")) {
-    if (parser.parseLess())
-      return failure();
-
-    SmallVector<BundleType::BundleElement, 4> elements;
-    if (parser.parseOptionalGreater()) {
-      // Parse all of the bundle-elt's.
-      do {
-        std::string nameStr;
-        StringRef name;
-        FIRRTLType type;
-
-        // The 'name' can be an identifier or an integer.
-        auto parseIntOrStringName = [&]() -> ParseResult {
-          uint32_t fieldIntName;
-          auto intName = parser.parseOptionalInteger(fieldIntName);
-          if (intName.hasValue()) {
-            nameStr = llvm::utostr(fieldIntName);
-            name = nameStr;
-            return intName.getValue();
-          }
-
-          // Otherwise must be an identifier.
-          return parser.parseKeyword(&name);
-          return success();
-        };
-
-        if (parseIntOrStringName())
-          return failure();
-        bool isFlip = succeeded(parser.parseOptionalKeyword("flip"));
-        if (parser.parseColon() || parseType(type, parser))
+  if (name.equals("anchor")) {
+    return result = AnchorType::get(context), success();
+} else if (name.equals("clock")) {
+      return result = ClockType::get(context), success();
+    } else if (name.equals("reset")) {
+      return result = ResetType::get(context), success();
+    } else if (name.equals("asyncreset")) {
+      return result = AsyncResetType::get(context), success();
+    } else if (name.equals("sint") || name.equals("uint") ||
+               name.equals("analog")) {
+      // Parse the width specifier if it exists.
+      int32_t width = -1;
+      if (!parser.parseOptionalLess()) {
+        if (parser.parseInteger(width) || parser.parseGreater())
           return failure();
 
-        elements.push_back({StringAttr::get(context, name), isFlip, type});
-      } while (!parser.parseOptionalComma());
+        if (width < 0)
+          return parser.emitError(parser.getNameLoc(), "unknown width"),
+                 failure();
+      }
 
-      if (parser.parseGreater())
+      if (name.equals("sint"))
+        result = SIntType::get(context, width);
+      else if (name.equals("uint"))
+        result = UIntType::get(context, width);
+      else {
+        assert(name.equals("analog"));
+        result = AnalogType::get(context, width);
+      }
+      return success();
+    } else if (name.equals("bundle")) {
+      if (parser.parseLess())
         return failure();
+
+      SmallVector<BundleType::BundleElement, 4> elements;
+      if (parser.parseOptionalGreater()) {
+        // Parse all of the bundle-elt's.
+        do {
+          std::string nameStr;
+          StringRef name;
+          FIRRTLType type;
+
+          // The 'name' can be an identifier or an integer.
+          auto parseIntOrStringName = [&]() -> ParseResult {
+            uint32_t fieldIntName;
+            auto intName = parser.parseOptionalInteger(fieldIntName);
+            if (intName.hasValue()) {
+              nameStr = llvm::utostr(fieldIntName);
+              name = nameStr;
+              return intName.getValue();
+            }
+
+            // Otherwise must be an identifier.
+            return parser.parseKeyword(&name);
+            return success();
+          };
+
+          if (parseIntOrStringName())
+            return failure();
+          bool isFlip = succeeded(parser.parseOptionalKeyword("flip"));
+          if (parser.parseColon() || parseType(type, parser))
+            return failure();
+
+          elements.push_back({StringAttr::get(context, name), isFlip, type});
+        } while (!parser.parseOptionalComma());
+
+        if (parser.parseGreater())
+          return failure();
+      }
+
+      return result = BundleType::get(elements, context), success();
+    } else if (name.equals("vector")) {
+      FIRRTLType elementType;
+      unsigned width = 0;
+
+      if (parser.parseLess() || parseType(elementType, parser) ||
+          parser.parseComma() || parser.parseInteger(width) ||
+          parser.parseGreater())
+        return failure();
+
+      return result = FVectorType::get(elementType, width), success();
     }
 
-    return result = BundleType::get(elements, context), success();
-  } else if (name.equals("vector")) {
-    FIRRTLType elementType;
-    unsigned width = 0;
-
-    if (parser.parseLess() || parseType(elementType, parser) ||
-        parser.parseComma() || parser.parseInteger(width) ||
-        parser.parseGreater())
-      return failure();
-
-    return result = FVectorType::get(elementType, width), success();
+    return parser.emitError(parser.getNameLoc(), "unknown firrtl type"),
+           failure();
   }
-
-  return parser.emitError(parser.getNameLoc(), "unknown firrtl type"),
-         failure();
-}
 
 /// Parse a type registered to this dialect.
 Type FIRRTLDialect::parseType(DialectAsmParser &parser) const {
@@ -832,7 +836,7 @@ std::pair<unsigned, bool> FVectorType::rootChildFieldID(unsigned fieldID,
 //===----------------------------------------------------------------------===//
 
 void FIRRTLDialect::registerTypes() {
-  addTypes<SIntType, UIntType, ClockType, ResetType, AsyncResetType, AnalogType,
+  addTypes<SIntType, UIntType, AnchorType, ClockType, ResetType, AsyncResetType, AnalogType,
            // Derived Types
            BundleType, FVectorType>();
 }

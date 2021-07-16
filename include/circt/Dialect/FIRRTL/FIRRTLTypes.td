@@ -62,6 +62,10 @@ def PassiveType : DialectType<FIRRTLDialect,
   CPred<"$_self.isa<FIRRTLType>() && $_self.cast<FIRRTLType>().isPassive()">,
   "a passive type (contain no flips)", "::circt::firrtl::FIRRTLType">;
 
+def AnchorType : DialectType<FIRRTLDialect, CPred<"$_self.isa<AnchorType>()">,
+ "anchor", "::circt::firrtl::AnchorType">,
+ BuildableType<"AnchorType::get($_builder.getContext())">;
+
 //===----------------------------------------------------------------------===//
 // FIRRTL Types Predicates
 //===----------------------------------------------------------------------===//

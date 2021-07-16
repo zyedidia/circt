@@ -33,6 +33,7 @@ class UIntType;
 class AnalogType;
 class BundleType;
 class FVectorType;
+class AnchorType;
 
 /// A collection of bits indicating the recursive properties of a type.
 struct RecursiveTypeProperties {
@@ -161,6 +162,14 @@ class AsyncResetType : public FIRRTLType::TypeBase<AsyncResetType, FIRRTLType,
 public:
   using Base::Base;
   static AsyncResetType get(MLIRContext *context) { return Base::get(context); }
+};
+
+/// `firrtl.anchor` describes a link in a path for non-local annotations.
+class AnchorType
+    : public FIRRTLType::TypeBase<AnchorType, FIRRTLType, DefaultTypeStorage> {
+public:
+  using Base::Base;
+  static AnchorType get(MLIRContext *context) { return Base::get(context); }
 };
 
 //===----------------------------------------------------------------------===//
