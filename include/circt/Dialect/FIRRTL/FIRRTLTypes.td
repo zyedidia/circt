@@ -62,9 +62,9 @@ def PassiveType : DialectType<FIRRTLDialect,
   CPred<"$_self.isa<FIRRTLType>() && $_self.cast<FIRRTLType>().isPassive()">,
   "a passive type (contain no flips)", "::circt::firrtl::FIRRTLType">;
 
-def AnchorType : DialectType<FIRRTLDialect, CPred<"$_self.isa<AnchorType>()">,
- "anchor", "::circt::firrtl::AnchorType">,
- BuildableType<"AnchorType::get($_builder.getContext())">;
+def PathType : DialectType<FIRRTLDialect, CPred<"$_self.isa<PathType>()">,
+ "PathType", "::circt::firrtl::PathType">,
+ BuildableType<"PathType::get($_builder.getContext())">;
 
 //===----------------------------------------------------------------------===//
 // FIRRTL Types Predicates
@@ -126,7 +126,7 @@ def AnnotationArrayAttr: ArrayAttrBase<
             "[&](::mlir::Attribute attr) { return attr.isa<"
             "::mlir::DictionaryAttr,"
             "::circt::firrtl::SubAnnotationAttr>();})">]>,
-    ""> {
+    "Not an AnnotationArray"> {
   let constBuilderCall = "$_builder.getArrayAttr($0)";
 }
 

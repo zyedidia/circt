@@ -620,19 +620,9 @@ def AsNonPassivePrimOp : FIRRTLOp<"asNonPassive", [NoSideEffect,
   let assemblyFormat = "$input attr-dict `:` type($result)";
 }
 
-def AttrPathAnchor : FIRRTLOp<"attrAnchor.path", [NoSideEffect]> {
-  let arguments = (ins AnchorType:$input);
-  let results = (outs AnchorType:$result);
-  let assemblyFormat = "$input attr-dict";
-}
-
-def AttrSrcAnchor : FIRRTLOp<"attrAnchor.src", [NoSideEffect]> {
-  let arguments = (ins );
-  let results = (outs AnchorType:$result);
+def PathAnchor : FIRRTLOp<"path.anchor", [NoSideEffect]> {
+  let arguments = (ins);
+  let results = (outs PathType:$result);
   let assemblyFormat = "attr-dict";
 }
-def AttrSinkAnchor : FIRRTLOp<"attrAnchor.sink", [NoSideEffect]> {
-  let arguments = (ins AnchorType:$input);
-  let results = (outs );
-  let assemblyFormat = "$input attr-dict";
-}
+

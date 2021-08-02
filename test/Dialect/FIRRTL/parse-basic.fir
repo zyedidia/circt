@@ -304,7 +304,7 @@ circuit MyModule :     ; CHECK: firrtl.circuit "MyModule" {
     ; The Scala implementation of FIRRTL prints registers without a reset value
     ; using the register name as the reset.  Make sure we handle this for
     ; compatibility.
-    ; CHECK: %_t_2622 = firrtl.reg %clock : (!firrtl.clock) -> !firrtl.uint<4>
+    ; CHECK: %_t_2622 = firrtl.reg %clock : !firrtl.uint<4>
     reg _t_2622 : UInt<4>, clock with :
       reset => (UInt<1>("h0"), _t_2622)
 

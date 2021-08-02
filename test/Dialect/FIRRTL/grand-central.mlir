@@ -28,7 +28,7 @@ firrtl.circuit "InterfaceGroundType" attributes {annotations = [{class = "sifive
 
 firrtl.circuit "InterfaceVectorType" attributes {annotations = [{class = "sifive.enterprise.grandcentral.AugmentedBundleType", defName = "Foo", elements = [{description = "description of foo", name = "foo", tpe = "sifive.enterprise.grandcentral.AugmentedVectorType"}]}]} {
   firrtl.module @InterfaceVectorType(in %clock: !firrtl.clock, in %reset: !firrtl.uint<1>) {
-    %a_0 = firrtl.reg %clock {annotations = [{a}, {class = "sifive.enterprise.grandcentral.AugmentedGroundType", defName = "Foo", name = "foo"}]} : (!firrtl.clock) -> !firrtl.uint<1>
+    %a_0 = firrtl.reg %clock {annotations = [{a}, {class = "sifive.enterprise.grandcentral.AugmentedGroundType", defName = "Foo", name = "foo"}]} : !firrtl.uint<1>
     %c0_ui1 = firrtl.constant 0 : !firrtl.uint<1>
     %a_1 = firrtl.regreset %clock, %reset, %c0_ui1 {annotations = [{a}, {class = "sifive.enterprise.grandcentral.AugmentedGroundType", defName = "Foo", name = "foo"}]} : (!firrtl.clock, !firrtl.uint<1>, !firrtl.uint<1>) -> !firrtl.uint<1>
   }

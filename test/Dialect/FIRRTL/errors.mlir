@@ -108,8 +108,9 @@ firrtl.module @Foo() {
 
 firrtl.circuit "Foo" {
   firrtl.module @Foo(in %clk: !firrtl.uint<1>, in %reset: !firrtl.uint<1>) {
-    // expected-error @+1 {{'firrtl.reg' op operand #0 must be clock, but got '!firrtl.uint<1>'}}
-    %a = firrtl.reg %clk {name = "a"} : (!firrtl.uint<1>) -> !firrtl.uint<1>
+    // expected-error @+1 {{use of value '%clk' expects different type than prior uses: '!firrtl.clock' vs '!firrtl.uint<1>'}}
+    %a = firrtl.reg %clk {name = "a"} : !firrtl.uint<1>
+    // expected-note @-3 {{prior use here}}
   }
 }
 

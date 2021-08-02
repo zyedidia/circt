@@ -283,7 +283,7 @@ circuit Foo: %[[{"one":null,"target":"~Foo|Foo>bar[0]"},{"two":null,"target":"~F
     reg bar: {baz: UInt<1>, qux: UInt<1>}[2], clock
 
     ; CHECK-LABEL: module {
-    ; CHECK: %bar = firrtl.reg %clock  {annotations = [#firrtl.subAnno<fieldID = [1, 3], {one}>, #firrtl.subAnno<fieldID = [5, 5], {two}>]} : (!firrtl.clock) -> !firrtl.vector<bundle<baz: uint<1>, qux: uint<1>>, 2>
+    ; CHECK: %bar = firrtl.reg %clock  {annotations = [#firrtl.subAnno<fieldID = [1, 3], {one}>, #firrtl.subAnno<fieldID = [5, 5], {two}>]} : !firrtl.vector<bundle<baz: uint<1>, qux: uint<1>>, 2>
 
 ; // -----
 

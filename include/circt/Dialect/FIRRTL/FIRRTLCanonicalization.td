@@ -78,14 +78,14 @@ def EmptyNode : Pat<
 
 // regreset(clock, invalidvalue, resetValue, name, {}) -> reg(clock, name, {})
 def RegresetWithInvalidReset : Pat<
-  (RegResetOp $clock, (InvalidValueOp), $resetValue, $name, $annotations),
-  (RegOp $clock, $name, $annotations),
+  (RegResetOp $clock, (InvalidValueOp), $resetValue, $name, $annotations, $paths),
+  (RegOp $clock, $name, $annotations, $paths),
   []>;
 
 // regreset(clock, constant_zero, resetValue, name, {}) -> reg(clock, name, {})
 def RegresetWithZeroReset : Pat<
   (RegResetOp $clock, (SpecialConstantOp ConstBoolAttrFalse), $resetValue,
-   $name, $annotations),
-  (RegOp $clock, $name, $annotations)>;
+   $name, $annotations, $paths),
+  (RegOp $clock, $name, $annotations, $paths)>;
 
 #endif // CIRCT_DIALECT_FIRRTL_FIRRTLCANONICALIZATION_TD

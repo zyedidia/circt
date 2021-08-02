@@ -478,7 +478,7 @@ firrtl.circuit "Simple" {
     // CHECK-NEXT: %c0_i2 = hw.constant 0 : i2
     %c0_ui2 = firrtl.constant 0 : !firrtl.uint<2>
     // CHECK-NEXT: %count = sv.reg sym @count : !hw.inout<i2>
-    %count = firrtl.reg %clock {name = "count", annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]} : (!firrtl.clock) -> !firrtl.uint<2>
+    %count = firrtl.reg %clock {name = "count", annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]} : !firrtl.uint<2>
 
     // CHECK-NEXT: sv.ifdef "SYNTHESIS"  {
     // CHECK-NEXT:   } else {
@@ -691,7 +691,7 @@ firrtl.circuit "Simple" {
   //CHECK-LABEL: hw.module @test_partialconnect(%clock: i1) {
   //CHECK: sv.alwaysff(posedge %clock)
   firrtl.module @test_partialconnect(in %clock : !firrtl.clock) {
-    %b = firrtl.reg %clock {name = "pcon"} : (!firrtl.clock) -> !firrtl.uint<1>
+    %b = firrtl.reg %clock {name = "pcon"} : !firrtl.uint<1>
     %a = firrtl.constant 0 : !firrtl.uint<2>
     firrtl.partialconnect %b, %a : !firrtl.uint<1>, !firrtl.uint<2>
   }
@@ -779,7 +779,7 @@ firrtl.circuit "Simple" {
                             in %cond: !firrtl.uint<1>, in %value: !firrtl.uint<42>) {
     %c0_ui42 = firrtl.constant 0 : !firrtl.uint<42>
     // CHECK: %count = sv.reg sym @count : !hw.inout<i42>
-    %count = firrtl.reg %clock {name = "count", annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]} : (!firrtl.clock) -> !firrtl.uint<42>
+    %count = firrtl.reg %clock {name = "count", annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]} : !firrtl.uint<42>
 
     // CHECK: sv.ifdef "SYNTHESIS"  {
     // CHECK-NEXT:   } else {

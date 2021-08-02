@@ -33,7 +33,7 @@ void FIRRTLType::print(raw_ostream &os) const {
   };
 
   TypeSwitch<FIRRTLType>(*this)
-      .Case<AnchorType>([&](Type) { os << "anchor"; })
+      .Case<PathType>([&](Type) { os << "path"; })
       .Case<ClockType>([&](Type) { os << "clock"; })
       .Case<ResetType>([&](Type) { os << "reset"; })
       .Case<AsyncResetType>([&](Type) { os << "asyncreset"; })
@@ -93,8 +93,8 @@ static ParseResult parseType(FIRRTLType &result, DialectAsmParser &parser) {
 
   auto *context = parser.getBuilder().getContext();
 
-  if (name.equals("anchor")) {
-    return result = AnchorType::get(context), success();
+  if (name.equals("path")) {
+    return result = PathType::get(context), success();
 } else if (name.equals("clock")) {
       return result = ClockType::get(context), success();
     } else if (name.equals("reset")) {
@@ -266,7 +266,7 @@ RecursiveTypeProperties FIRRTLType::getRecursiveTypeProperties() {
 FIRRTLType FIRRTLType::getPassiveType() {
   return TypeSwitch<FIRRTLType, FIRRTLType>(*this)
       .Case<ClockType, ResetType, AsyncResetType, SIntType, UIntType,
-            AnalogType>([&](Type) { return *this; })
+            AnalogType, PathType>([&](Type) { return *this; })
       .Case<BundleType>(
           [](BundleType bundleType) { return bundleType.getPassiveType(); })
       .Case<FVectorType>(
@@ -330,7 +330,7 @@ FIRRTLType FIRRTLType::getWidthlessType() {
 /// If this is an IntType, AnalogType, or sugar type for a single bit (Clock,
 /// Reset, etc) then return the bitwidth.  Return -1 if the is one of these
 /// types but without a specified bitwidth.  Return -2 if this isn't a simple
-/// type.
+/// type.  Return -3 if this isn't a sizable type.
 int32_t FIRRTLType::getBitWidthOrSentinel() {
   return TypeSwitch<FIRRTLType, int32_t>(*this)
       .Case<ClockType, ResetType, AsyncResetType>([](Type) { return 1; })
@@ -339,6 +339,7 @@ int32_t FIRRTLType::getBitWidthOrSentinel() {
       .Case<AnalogType>(
           [](AnalogType analogType) { return analogType.getWidthOrSentinel(); })
       .Case<BundleType, FVectorType>([](Type) { return -2; })
+      .Case<PathType>([](Type) { return -3; })
       .Default([](Type) {
         llvm_unreachable("unknown FIRRTL type");
         return -2;
@@ -406,6 +407,11 @@ bool firrtl::areTypesEquivalent(FIRRTLType destType, FIRRTLType srcType) {
   // Reset types can drive UInt<1>, AsyncReset, or Reset types.
   if (srcType.isa<ResetType>())
     return destType.isResetType();
+
+  if (srcType.isa<PathType>())
+    return destType.isa<PathType>();
+  if (destType.isa<PathType>())
+    return srcType.isa<PathType>();
 
   // Vector types can be connected if they have the same size and element type.
   auto destVectorType = destType.dyn_cast<FVectorType>();
@@ -836,7 +842,7 @@ std::pair<unsigned, bool> FVectorType::rootChildFieldID(unsigned fieldID,
 //===----------------------------------------------------------------------===//
 
 void FIRRTLDialect::registerTypes() {
-  addTypes<SIntType, UIntType, AnchorType, ClockType, ResetType, AsyncResetType, AnalogType,
+  addTypes<SIntType, UIntType, PathType, ClockType, ResetType, AsyncResetType, AnalogType,
            // Derived Types
            BundleType, FVectorType>();
 }

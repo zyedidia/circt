@@ -215,21 +215,23 @@ def RegOp : FIRRTLOp<"reg", [/*MemAlloc*/]> {
     ```
     }];
 
-  let arguments =
-    (ins ClockType:$clockVal, StrAttr:$name, AnnotationArrayAttr:$annotations);
+  let arguments = (ins ClockType:$clockVal, StrAttr:$name, 
+                       AnnotationArrayAttr:$annotations, 
+                       Variadic<PathType>:$pathSinks);
   let results = (outs PassiveType:$result);
 
   let builders = [
     OpBuilder<(ins "::mlir::Type":$elementType, "::mlir::Value":$clockVal,
                    CArg<"StringRef", "{}">:$name,
-                   CArg<"ArrayRef<Attribute>","{}">:$annotations), [{
+                   CArg<"ArrayRef<Attribute>","{}">:$annotations,
+                   CArg<"ValueRange","{}">:$pathSinks), [{
       return build($_builder, $_state, elementType, clockVal, name,
-                   $_builder.getArrayAttr(annotations));
+                   $_builder.getArrayAttr(annotations), pathSinks);
     }]>
   ];
 
   let assemblyFormat =
-    "operands custom<ImplicitSSAName>(attr-dict) `:` functional-type(operands, $result)";
+    "$clockVal (`paths` $pathSinks^)? custom<ImplicitSSAName>(attr-dict) `:` type($result)";
   let hasCanonicalizeMethod = true;
 }
 
@@ -244,17 +246,19 @@ def RegResetOp : FIRRTLOp<"regreset", [/*MemAlloc*/]> {
 
   let arguments = (
     ins ClockType:$clockVal, ResetType:$resetSignal, PassiveType:$resetValue,
-        StrAttr:$name, AnnotationArrayAttr:$annotations);
+        StrAttr:$name, AnnotationArrayAttr:$annotations, 
+        Variadic<PathType>:$pathSinks);
   let results = (outs PassiveType:$result);
 
   let builders = [
     OpBuilder<(ins "::mlir::Type":$elementType, "::mlir::Value":$clockVal,
                    "::mlir::Value":$resetSignal, "::mlir::Value":$resetValue,
                    CArg<"StringRef", "{}">:$name,
-                   CArg<"ArrayRef<Attribute>","{}">:$annotations), [{
+                   CArg<"ArrayRef<Attribute>","{}">:$annotations,
+                   CArg<"ValueRange","{}">:$pathSinks), [{
       return build($_builder, $_state, elementType, clockVal, resetSignal,
                    resetValue, name,
-                   $_builder.getArrayAttr(annotations));
+                   $_builder.getArrayAttr(annotations), pathSinks);
     }]>
   ];
 

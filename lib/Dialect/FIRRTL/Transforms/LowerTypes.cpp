@@ -820,7 +820,7 @@ void TypeLoweringVisitor::visitDecl(WireOp op) {
 void TypeLoweringVisitor::visitDecl(RegOp op) {
   auto clone = [&](FlatBundleFieldEntry field, StringRef name,
                    ArrayAttr attrs) -> Operation * {
-    return builder->create<RegOp>(field.type, op.clockVal(), name, attrs);
+    return builder->create<RegOp>(field.type, op.clockVal(), name, attrs, ValueRange{});
   };
   lowerProducer(op, clone);
 }
@@ -831,7 +831,7 @@ void TypeLoweringVisitor::visitDecl(RegResetOp op) {
                    ArrayAttr attrs) -> Operation * {
     auto resetVal = getSubWhatever(op.resetValue(), field.index);
     return builder->create<RegResetOp>(field.type, op.clockVal(),
-                                       op.resetSignal(), resetVal, name, attrs);
+                                       op.resetSignal(), resetVal, name, attrs, ValueRange{});
   };
   lowerProducer(op, clone);
 }

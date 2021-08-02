@@ -87,7 +87,7 @@ firrtl.circuit "Test" {
     firrtl.connect %result6, %regreset: !firrtl.uint<2>, !firrtl.uint<2>
 
     // reg
-    %reg = firrtl.reg %clock  : (!firrtl.clock) -> !firrtl.uint<4>
+    %reg = firrtl.reg %clock  : !firrtl.uint<4>
     firrtl.connect %reg, %c0_ui2 : !firrtl.uint<4>, !firrtl.uint<2>
     // CHECK: firrtl.connect %result7, %c0_ui4
     firrtl.connect %result7, %reg: !firrtl.uint<4>, !firrtl.uint<4>
@@ -150,7 +150,7 @@ firrtl.circuit "Test" {
 firrtl.circuit "Issue1188"  {
   firrtl.module @Issue1188(in %clock: !firrtl.clock, in %reset: !firrtl.uint<1>, out %io_out: !firrtl.uint<6>, out %io_out3: !firrtl.uint<3>) {
     %c1_ui6 = firrtl.constant 1 : !firrtl.uint<6>
-    %D0123456 = firrtl.reg %clock  : (!firrtl.clock) -> !firrtl.uint<6>
+    %D0123456 = firrtl.reg %clock  : !firrtl.uint<6>
     %0 = firrtl.bits %D0123456 4 to 0 : (!firrtl.uint<6>) -> !firrtl.uint<5>
     %1 = firrtl.bits %D0123456 5 to 5 : (!firrtl.uint<6>) -> !firrtl.uint<1>
     %2 = firrtl.cat %0, %1 : (!firrtl.uint<5>, !firrtl.uint<1>) -> !firrtl.uint<6>
@@ -174,14 +174,14 @@ firrtl.circuit "testDontTouch"  {
   // CHECK-LABEL: firrtl.module @blockProp
   firrtl.module @blockProp1(in %clock: !firrtl.clock, in %a: !firrtl.uint<1> {firrtl.annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]}, out %b: !firrtl.uint<1>) {
     //CHECK: %c = firrtl.reg
-    %c = firrtl.reg %clock  : (!firrtl.clock) -> !firrtl.uint<1>
+    %c = firrtl.reg %clock  : !firrtl.uint<1>
     firrtl.connect %c, %a : !firrtl.uint<1>, !firrtl.uint<1>
     firrtl.connect %b, %c : !firrtl.uint<1>, !firrtl.uint<1>
   }
   // CHECK-LABEL: firrtl.module @allowProp
   firrtl.module @allowProp(in %clock: !firrtl.clock, in %a: !firrtl.uint<1>, out %b: !firrtl.uint<1>) {
     // CHECK: [[CONST:%.+]] = firrtl.constant 1 : !firrtl.uint<1>
-    %c = firrtl.reg %clock  : (!firrtl.clock) -> !firrtl.uint<1>
+    %c = firrtl.reg %clock  : !firrtl.uint<1>
     firrtl.connect %c, %a : !firrtl.uint<1>, !firrtl.uint<1>
     // CHECK: firrtl.connect %b, [[CONST]]
     firrtl.connect %b, %c : !firrtl.uint<1>, !firrtl.uint<1>
@@ -189,7 +189,7 @@ firrtl.circuit "testDontTouch"  {
   // CHECK-LABEL: firrtl.module @blockProp3
   firrtl.module @blockProp3(in %clock: !firrtl.clock, in %a: !firrtl.uint<1> , out %b: !firrtl.uint<1>) {
     //CHECK: %c = firrtl.reg
-    %c = firrtl.reg %clock {annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]} : (!firrtl.clock) -> !firrtl.uint<1>
+    %c = firrtl.reg %clock {annotations = [{class = "firrtl.transforms.DontTouchAnnotation"}]} : !firrtl.uint<1>
     firrtl.connect %c, %a : !firrtl.uint<1>, !firrtl.uint<1>
     firrtl.connect %b, %c : !firrtl.uint<1>, !firrtl.uint<1>
   }
