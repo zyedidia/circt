@@ -1,6 +1,10 @@
 // RUN: circt-opt -lower-firrtl-to-hw %s | FileCheck %s
 
-firrtl.circuit "Simple" {
+firrtl.circuit "Simple"   attributes {annotations = [{class =
+"sifive.enterprise.firrtl.ExtractAssumptionsAnnotation", directory = "dir1",  filename = "./dir1/filename1" }, {class =
+"sifive.enterprise.firrtl.ExtractCoverageAnnotation", directory = "dir2",  filename = "./dir2/filename2" }, {class =
+"sifive.enterprise.firrtl.ExtractAssertionsAnnotation", directory = "dir3",  filename = "./dir3/filename3" }]}
+{
 
   // CHECK-LABEL: hw.module @Simple
   firrtl.module @Simple(in %in1: !firrtl.uint<4>,
@@ -175,9 +179,6 @@ firrtl.circuit "Simple" {
     // CHECK-NEXT: [[CVT4:%.+]] = comb.sext [[CVT]] : (i3) -> i4
     // CHECK-NEXT: comb.mux {{.*}}, [[CVT4]], [[SUB]] : i4
     %26 = firrtl.mux(%17, %23, %25) : (!firrtl.uint<1>, !firrtl.sint<3>, !firrtl.sint<4>) -> !firrtl.sint<4>
-
-    // CHECK-NEXT: [[CVT4:%.+]] = comb.sext [[CVT]] : (i3) -> i4
-    %27 = firrtl.mux(%in4, %23, %25) : (!firrtl.uint<0>, !firrtl.sint<3>, !firrtl.sint<4>) -> !firrtl.sint<4>
 
     // CHECK-NEXT: = comb.icmp eq  {{.*}}, %c-1_i14 : i14
     %28 = firrtl.andr %18 : (!firrtl.uint<14>) -> !firrtl.uint<1>
@@ -358,16 +359,16 @@ firrtl.circuit "Simple" {
 
     // CHECK-NEXT: sv.always posedge %clock {
     // CHECK-NEXT:   sv.if %aEn {
-    // CHECK-NEXT:     sv.assert %aCond : i1
-    // CHECK-NEXT:     sv.assert "assert_0" %aCond : i1
+    // CHECK-NEXT:     sv.assert {output_file = {directory = "dir3", exclude_from_filelist = true, exclude_replicated_ops = true, name = "./dir3/filename3"}} %aCond : i1
+    // CHECK-NEXT:     sv.assert "assert_0" {output_file = {directory = "dir3", exclude_from_filelist = true, exclude_replicated_ops = true, name = "./dir3/filename3"}} %aCond : i1
     // CHECK-NEXT:   }
     // CHECK-NEXT:   sv.if %bEn {
-    // CHECK-NEXT:     sv.assume %bCond  : i1
-    // CHECK-NEXT:     sv.assume "assume_0" %bCond  : i1
+    // CHECK-NEXT:     sv.assume {output_file = {directory = "dir1", exclude_from_filelist = true, exclude_replicated_ops = true, name = "./dir1/filename1"}} %bCond : i1
+    // CHECK-NEXT:     sv.assume "assume_0" {output_file = {directory = "dir1", exclude_from_filelist = true, exclude_replicated_ops = true, name = "./dir1/filename1"}} %bCond : i1
     // CHECK-NEXT:   }
     // CHECK-NEXT:   sv.if %cEn {
-    // CHECK-NEXT:     sv.cover %cCond : i1
-    // CHECK-NEXT:     sv.cover "cover_0" %cCond : i1
+    // CHECK-NEXT:     sv.cover {output_file = {directory = "dir2", exclude_from_filelist = true, exclude_replicated_ops = true, name = "./dir2/filename2"}} %cCond : i1
+    // CHECK-NEXT:     sv.cover "cover_0" {output_file = {directory = "dir2", exclude_from_filelist = true, exclude_replicated_ops = true, name = "./dir2/filename2"}} %cCond : i1
     // CHECK-NEXT:   }
     // CHECK-NEXT: }
     firrtl.assert %clock, %aCond, %aEn, "assert0"
@@ -398,11 +399,34 @@ firrtl.circuit "Simple" {
     %1455 = firrtl.asPassive %hits_1_7 : !firrtl.uint<1>
   }
 
-  // CHECK: sv.bind @[[bazSymbol:.+]] {output_file
+  // CHECK: sv.bind @[[bazSymbol:.+]]
+  // CHECK-NOT: output_file
+  // CHECK-NEXT: sv.bind @[[quxSymbol:.+]] {output_file
+  // CHECK-SAME: directory = "outputDir", exclude_from_filelist = true
+  // CHECK-SAME: exclude_replicated_ops = true, name = "bindings.sv"
   // CHECK-NEXT: hw.module @bindTest()
   firrtl.module @bindTest() {
     // CHECK: hw.instance "baz" sym @[[bazSymbol]] @bar
     %baz = firrtl.instance @bar {lowerToBind = true, name = "baz"} : !firrtl.uint<1>
+    // CHECK: hw.instance "qux" sym @[[quxSymbol]] @bar
+    %qux = firrtl.instance @bar {lowerToBind = true, name = "qux",
+      output_file = {
+        directory = "outputDir",
+        exclude_from_filelist = true,
+        exclude_replicated_ops = true,
+        name = "bindings.sv"}} : !firrtl.uint<1>
+  }
+
+
+  // CHECK-LABEL: hw.module @output_fileTest
+  // CHECK-SAME: directory = "output_fileTest/dir", exclude_from_filelist = true
+  // CHECK-SAME: exclude_replicated_ops = true, name = "output_fileTest.sv"
+  firrtl.module @output_fileTest() attributes {output_file = {
+    directory = "output_fileTest/dir",
+    exclude_from_filelist = true,
+    exclude_replicated_ops = true,
+    name = "output_fileTest.sv"
+  }} {
   }
 
   // https://github.com/llvm/circt/issues/314

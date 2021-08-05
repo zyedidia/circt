@@ -22,7 +22,6 @@
 #include "circt/Dialect/SV/SVDialect.h"
 #include "circt/Dialect/SV/SVPasses.h"
 #include "circt/Support/LoweringOptions.h"
-#include "circt/Transforms/Passes.h"
 #include "circt/Translation/ExportVerilog.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/AsmState.h"
@@ -32,6 +31,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Support/Timing.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
@@ -69,7 +69,7 @@ static cl::opt<bool> disableOptimization("disable-opt",
 
 static cl::opt<bool> inliner("inline",
                              cl::desc("Run the FIRRTL module inliner"),
-                             cl::init(false));
+                             cl::init(true));
 
 static cl::opt<bool> lowerToHW("lower-to-hw",
                                cl::desc("run the lower-to-hw pass"));
@@ -118,6 +118,11 @@ static cl::opt<bool>
                           "Grand Central annotations"),
                  cl::init(false));
 
+static cl::opt<bool>
+    checkCombCycles("firrtl-check-comb-cycles",
+                    cl::desc("check combinational cycles on firrtl"),
+                    cl::init(false));
+
 enum OutputFormatKind {
   OutputMLIR,
   OutputVerilog,
@@ -157,6 +162,14 @@ static cl::opt<std::string> blackBoxRootResourcePath(
         "Optional path to use as the root of black box resource annotations"),
     cl::value_desc("path"), cl::init(""));
 
+/// Create a simple canonicalizer pass.
+static std::unique_ptr<Pass> createSimpleCanonicalizerPass() {
+  mlir::GreedyRewriteConfig config;
+  config.useTopDownTraversal = true;
+  config.enableRegionSimplification = false;
+  return mlir::createCanonicalizerPass(config);
+}
+
 /// Process a single buffer of the input.
 static LogicalResult
 processBuffer(std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
@@ -187,7 +200,7 @@ processBuffer(std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
     auto parserTimer = ts.nest("FIR Parser");
     firrtl::FIRParserOptions options;
     options.ignoreInfoLocators = ignoreFIRLocations;
-    module = importFIRRTL(sourceMgr, &context, options);
+    module = importFIRFile(sourceMgr, &context, options);
   } else {
     auto parserTimer = ts.nest("MLIR Parser");
     assert(inputFormat == InputMLIRFile);
@@ -221,6 +234,9 @@ processBuffer(std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
       modulePM.addPass(firrtl::createExpandWhensPass());
     }
   }
+
+  if (checkCombCycles)
+    pm.nest<firrtl::CircuitOp>().addPass(firrtl::createCheckCombCyclesPass());
 
   // If we parsed a FIRRTL file and have optimizations enabled, clean it up.
   if (!disableOptimization) {
