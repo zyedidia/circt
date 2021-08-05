@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <tcl.h>
 
 #include "Circt.h"
 #include "circt/Dialect/Comb/CombDialect.h"
@@ -15,10 +14,25 @@ MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(SV, sv, circt::sv::SVDialect)
 
 extern "C" {
 
-int circtCmd(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const objv[]);
+static int operationTypeSetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *obj) {
+  return TCL_ERROR;
+}
 
-void Circt_Cleanup(ClientData data) {
+static void operationTypeUpdateStringProc(Tcl_Obj *obj) {
+  const char *value = "<operation>";
+  size_t size = strlen(value) + 1;
+  obj->bytes = Tcl_Alloc(size);
+  memcpy(obj->bytes, value, size);
+}
+
+static void operationTypeDupIntRepProc(Tcl_Obj *src, Tcl_Obj *dup) {
+  dup->internalRep.otherValuePtr = src->internalRep.otherValuePtr;
+}
+
+static void operationTypeFreeIntRepProc(Tcl_Obj *obj) {
+}
+
+static void Circt_Cleanup(ClientData data) {
   mlir::MLIRContext *context = (mlir::MLIRContext *)data;
   delete context;
 }
@@ -43,14 +57,6 @@ int DLLEXPORT Circt_Init(Tcl_Interp *interp) {
   operationType->dupIntRepProc = operationTypeDupIntRepProc;
   operationType->freeIntRepProc = operationTypeFreeIntRepProc;
   Tcl_RegisterObjType(operationType);
-
-  Tcl_ObjType *moduleType = new Tcl_ObjType;
-  moduleType->name = "MlirModule";
-  moduleType->setFromAnyProc = moduleTypeSetFromAnyProc;
-  moduleType->updateStringProc = moduleTypeUpdateStringProc;
-  moduleType->dupIntRepProc = moduleTypeDupIntRepProc;
-  moduleType->freeIntRepProc = moduleTypeFreeIntRepProc;
-  Tcl_RegisterObjType(moduleType);
 
   // Register package
   if (Tcl_PkgProvide(interp, "Circt", "1.0") == TCL_ERROR) {

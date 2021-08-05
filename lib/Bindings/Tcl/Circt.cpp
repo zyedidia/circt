@@ -15,63 +15,30 @@
 #include "mlir/Support/FileUtilities.h"
 #include "llvm/Support/SourceMgr.h"
 
-int returnErrorStr(Tcl_Interp *interp, const char *error) {
+static int returnErrorStr(Tcl_Interp *interp, const char *error) {
   Tcl_SetObjResult(interp, Tcl_NewStringObj(error, -1));
   return TCL_ERROR;
 }
 
-int operationTypeSetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *obj) {
-  return TCL_ERROR;
-}
+static int circtCmdStringify(mlir::MLIRContext *context, Tcl_Interp *interp,
+                         int objc, Tcl_Obj *const objv[]) {
+  if (objc != 3) {
+    Tcl_WrongNumArgs(interp, 1, objv, "circt print  object");
+    return TCL_ERROR;
+  }
 
-void operationTypeUpdateStringProc(Tcl_Obj *obj) {
+  auto *opholder = objv[2];
+  if (Tcl_ConvertToType(interp, opholder, Tcl_GetObjType("MlirOperation")) !=
+      TCL_OK)
+    return returnErrorStr(interp, "Not an MlirOperation");
+  
+  auto *op = unwrap((MlirOperation){opholder->internalRep.otherValuePtr});
   std::string str;
-  auto *op = unwrap((MlirOperation){obj->internalRep.otherValuePtr});
   llvm::raw_string_ostream stream(str);
   op->print(stream);
-  obj->length = str.length();
-  obj->bytes = Tcl_Alloc(obj->length);
-  memcpy(obj->bytes, str.c_str(), obj->length);
-  obj->bytes[obj->length] = '\0';
-}
-
-void operationTypeDupIntRepProc(Tcl_Obj *src, Tcl_Obj *dup) {
-  auto *op = unwrap((MlirOperation){src->internalRep.otherValuePtr})->clone();
-  dup->internalRep.otherValuePtr = wrap(op).ptr;
-}
-
-void operationTypeFreeIntRepProc(Tcl_Obj *obj) {
-  auto *op = unwrap((MlirOperation){obj->internalRep.otherValuePtr});
-  op->erase();
-}
-
-int moduleTypeSetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *obj) {
-  return TCL_ERROR;
-}
-
-void moduleTypeUpdateStringProc(Tcl_Obj *obj) {
-  std::string str;
-  auto op = unwrap((MlirModule){obj->internalRep.otherValuePtr});
-  llvm::raw_string_ostream stream(str);
-  op.print(stream);
-  obj->length = str.length();
-  obj->bytes = Tcl_Alloc(obj->length);
-  memcpy(obj->bytes, str.c_str(), obj->length);
-  obj->bytes[obj->length] = '\0';
-}
-
-void moduleTypeDupIntRepProc(Tcl_Obj *src, Tcl_Obj *dup) {
-  auto *op = unwrap((MlirModule){src->internalRep.otherValuePtr})->clone();
-  dup->internalRep.otherValuePtr = wrap(op).ptr;
-}
-
-void moduleTypeFreeIntRepProc(Tcl_Obj *obj) {
-  auto op = unwrap((MlirModule){obj->internalRep.otherValuePtr});
-  op.erase();
-}
-static int circtCmdPrint(mlir::MLIRContext *context, Tcl_Interp *interp,
-                         int objc, Tcl_Obj *const objv[]) {
-  return TCL_ERROR;
+  Tcl_Obj* strobj = Tcl_NewStringObj(str.c_str(), -1);
+  Tcl_SetObjResult(interp, strobj);
+   return TCL_OK;
 }
 
 static int circtCmdLoad(mlir::MLIRContext *context, Tcl_Interp *interp,
@@ -108,10 +75,10 @@ static int circtCmdLoad(mlir::MLIRContext *context, Tcl_Interp *interp,
   if (!module)
     return returnErrorStr(interp, "Failed to load module");
 
-  MlirModule m = wrap(module.release());
+  MlirOperation m = wrap(module.release().getOperation());
 
   auto *obj = Tcl_NewObj();
-  obj->typePtr = Tcl_GetObjType("MlirModule");
+  obj->typePtr = Tcl_GetObjType("MlirOperation");
   obj->internalRep.otherValuePtr = (void *)m.ptr;
   obj->length = 0;
   obj->bytes = nullptr;
@@ -135,8 +102,8 @@ extern "C" int circtCmd(ClientData cdata, Tcl_Interp *interp, int objc,
   char *cmd = Tcl_GetStringFromObj(objv[1], &cmdLen);
   if (!strcmp(cmd, "load")) {
     return circtCmdLoad(context, interp, objc, objv);
-  } else if (!strcmp(cmd, "print")) {
-    return circtCmdPrint(context, interp, objc, objv);
+  } else if (!strcmp(cmd, "stringify")) {
+    return circtCmdStringify(context, interp, objc, objv);
   }
   return returnErrorStr(interp, "Uknown subcommand");
 }
