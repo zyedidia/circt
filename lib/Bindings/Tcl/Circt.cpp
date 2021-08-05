@@ -99,7 +99,7 @@ extern "C" int circtCmd(ClientData cdata, Tcl_Interp *interp, int objc,
                         Tcl_Obj *const objv[]) {
   mlir::MLIRContext *context = (mlir::MLIRContext *)cdata;
   if (objc < 2) {
-    Tcl_WrongNumArgs(interp, 1, objv, "circt [print|load]");
+    Tcl_WrongNumArgs(interp, 1, objv, "circt [stringify|load]");
     return TCL_ERROR;
   }
 

@@ -21,10 +21,14 @@ static int operationTypeSetFromAnyProc(Tcl_Interp *interp, Tcl_Obj *obj) {
 }
 
 static void operationTypeUpdateStringProc(Tcl_Obj *obj) {
-  const char *value = "<operation>";
-  size_t size = strlen(value) + 1;
-  obj->bytes = Tcl_Alloc(size);
-  memcpy(obj->bytes, value, size);
+  std::string str;
+  auto *op = unwrap((MlirOperation){obj->internalRep.otherValuePtr});
+  llvm::raw_string_ostream stream(str);
+  op->print(stream);
+  obj->length = str.length();
+  obj->bytes = Tcl_Alloc(obj->length);
+  memcpy(obj->bytes, str.c_str(), obj->length);
+  obj->bytes[obj->length] = '\0';
 }
 
 static void operationTypeDupIntRepProc(Tcl_Obj *src, Tcl_Obj *dup) {
