@@ -1,5 +1,5 @@
 load libcirct-tcl.so Circt
 
-set circuit [circt load "MLIR" "/home/andrew/src/circt/out.mlir"];
+set circuit [circt load "MLIR" "../../../test/Dialect/SV/basic.mlir"];
 puts [circt stringify $circuit]
 
