@@ -15,11 +15,15 @@
 #include "mlir/Support/FileUtilities.h"
 #include "llvm/Support/SourceMgr.h"
 
+/// Return an error string to tcl.
 static int returnErrorStr(Tcl_Interp *interp, const char *error) {
   Tcl_SetObjResult(interp, Tcl_NewStringObj(error, -1));
   return TCL_ERROR;
 }
 
+/// Return the circt object as a string.  We don't keep circt objects as strings
+/// normally as that would be expensive to maintain, thus there is an explicit
+/// conversion to string.
 static int circtCmdStringify(mlir::MLIRContext *context, Tcl_Interp *interp,
                          int objc, Tcl_Obj *const objv[]) {
   if (objc != 3) {
@@ -41,6 +45,7 @@ static int circtCmdStringify(mlir::MLIRContext *context, Tcl_Interp *interp,
    return TCL_OK;
 }
 
+/// Load an ir file into an object.
 static int circtCmdLoad(mlir::MLIRContext *context, Tcl_Interp *interp,
                         int objc, Tcl_Obj *const objv[]) {
   if (objc != 4) {
