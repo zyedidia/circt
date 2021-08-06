@@ -263,7 +263,7 @@ def RegResetOp : FIRRTLOp<"regreset", [/*MemAlloc*/]> {
   ];
 
   let assemblyFormat =
-     "operands custom<ImplicitSSAName>(attr-dict) `:` functional-type(operands, $result)";
+     "operands custom<ImplicitSSAName>(attr-dict) `:` type($resetSignal) `,` type($resetValue) `,` type($result)";
 
   let hasCanonicalizer = true;
 }

@@ -71,7 +71,7 @@ firrtl.circuit "TestHarness" attributes {
       type = "source"
     }, {
       class = "firrtl.transforms.DontTouchAnnotation"
-    }]} : (!firrtl.clock, !firrtl.reset, !firrtl.uint<1>) -> !firrtl.uint<1>
+    }]} : !firrtl.reset, !firrtl.uint<1>, !firrtl.uint<1>
 
     // CHECK-LABEL: firrtl.mem Undefined
     // CHECK-NOT: class = "sifive.enterprise.grandcentral.MemTapAnnotation"
