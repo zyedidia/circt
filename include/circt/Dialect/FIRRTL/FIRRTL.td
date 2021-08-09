@@ -44,6 +44,10 @@ def FIRRTLDialect : Dialect {
 class FIRRTLOp<string mnemonic, list<OpTrait> traits = []> :
     Op<FIRRTLDialect, mnemonic, traits>;
 
+class SameTypeConstraint<string lhs, string rhs>
+ : TypesMatchWith<"lhs and rhs types should be equivalent",
+                   lhs, rhs, [{ $_self }]>;
+
 include "FIRRTLTypes.td"
 include "FIRRTLStructure.td"
 include "FIRRTLDeclarations.td"

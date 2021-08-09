@@ -2904,7 +2904,7 @@ ParseResult FIRStmtParser::parseMem(unsigned memIndent) {
   auto result =
       builder.create<MemOp>(resultTypes, readLatency, writeLatency, depth, ruw,
                             builder.getArrayAttr(resultNames), name,
-                            annotations.first, annotations.second);
+                            annotations.first, annotations.second, ValueRange{});
 
   UnbundledValueEntry unbundledValueEntry;
   unbundledValueEntry.reserve(result.getNumResults());
@@ -2965,7 +2965,7 @@ ParseResult FIRStmtParser::parseNode() {
   Value result;
   if (!name.empty() || !annotations.empty()) {
     result = builder.create<NodeOp>(initializer.getType(), initializer, name,
-                                    annotations);
+                                    annotations, ValueRange{});
   } else
     result = initializer;
   return moduleContext.addSymbolEntry(id, result, startTok.getLoc());
@@ -2994,7 +2994,7 @@ ParseResult FIRStmtParser::parseWire() {
                      moduleContext.targetsInModule, type);
   auto name = hasDontTouch(annotations) ? id : filterUselessName(id);
 
-  auto result = builder.create<WireOp>(type, name, annotations);
+  auto result = builder.create<WireOp>(type, name, annotations, ValueRange{});
   return moduleContext.addSymbolEntry(id, result, startTok.getLoc());
 }
 

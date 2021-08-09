@@ -638,8 +638,19 @@ def AsNonPassivePrimOp : FIRRTLOp<"asNonPassive", [NoSideEffect,
 }
 
 def PathAnchor : FIRRTLOp<"path.anchor", [NoSideEffect]> {
-  let arguments = (ins);
+  let arguments = (ins OptionalAttr<SymbolNameAttr>:$sym_name);
   let results = (outs PathType:$result);
-  let assemblyFormat = "attr-dict";
+  let assemblyFormat = "($sym_name^)? attr-dict";
+
+  let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// An WireOp may optionally define a symbol.
+    bool isOptionalSymbol() { return true; }
+
+  }];
+
 }
 

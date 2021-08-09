@@ -20,11 +20,12 @@ def InstanceOp : FIRRTLOp<"instance"> {
   let arguments = (ins FlatSymbolRefAttr:$moduleName, StrAttr:$name,
                        AnnotationArrayAttr:$annotations,
                        PortAnnotationsAttr:$portAnnotations,
+                       Variadic<PathType>:$pathSinks,
                        BoolAttr:$lowerToBind);
   let results = (outs Variadic<FIRRTLType>:$results);
 
   let assemblyFormat =
-    "$moduleName custom<InstanceOp>(attr-dict) (`:` type($results)^ )?";
+    "$moduleName (`paths` $pathSinks^)? custom<InstanceOp>(attr-dict) (`:` type($results)^ )?";
 
   let verifier = "return ::verifyInstanceOp(*this);";
 
@@ -34,6 +35,7 @@ def InstanceOp : FIRRTLOp<"instance"> {
                    CArg<"StringRef", "{}">:$name,
                    CArg<"ArrayRef<Attribute>", "{}">:$annotations,
                    CArg<"ArrayRef<Attribute>", "{}">:$portAnnotations,
+                   CArg<"ValueRange","{}">:$pathSinks,
                    CArg<"bool","false">:$lowerToBind)>,
 
     /// Constructor that creates a version of the specified instance, but that
@@ -101,10 +103,11 @@ def MemOp : FIRRTLOp<"mem", [/*MemAlloc*/]> {
          Confined<I64Attr, [IntMinValue<1>]>:$depth, RUWAttr:$ruw,
          StrArrayAttr:$portNames, StrAttr:$name,
          AnnotationArrayAttr:$annotations,
-         PortAnnotationsAttr:$portAnnotations);
+         PortAnnotationsAttr:$portAnnotations,
+         Variadic<PathType>:$pathSinks);
   let results = (outs Variadic<FIRRTLType>:$results);
 
-  let assemblyFormat = "$ruw custom<MemOp>(attr-dict) `:` type($results)";
+  let assemblyFormat = "(`paths` $pathSinks^)? $ruw custom<MemOp>(attr-dict) `:` type($results)";
 
   let builders = [
     OpBuilder<(ins "::mlir::TypeRange":$resultTypes,
@@ -113,7 +116,8 @@ def MemOp : FIRRTLOp<"mem", [/*MemAlloc*/]> {
                    "ArrayRef<Attribute>":$portNames,
                    CArg<"StringRef", "{}">:$name,
                    CArg<"ArrayRef<Attribute>", "{}">:$annotations,
-                   CArg<"ArrayRef<Attribute>", "{}">:$portAnnotations)>
+                   CArg<"ArrayRef<Attribute>", "{}">:$portAnnotations,
+                   CArg<"ValueRange","{}">:$pathSinks)>
   ];
 
   let verifier = "return ::verifyMemOp(*this);";
@@ -164,7 +168,7 @@ def MemOp : FIRRTLOp<"mem", [/*MemAlloc*/]> {
 }
 
 def NodeOp : FIRRTLOp<"node",
-                      [SameOperandsAndResultType, InferTypeOpInterface]> {
+                      [SameTypeConstraint<"input", "result">, InferTypeOpInterface]> {
   let summary = "No-op to name a value";
   let description = [{
     A node is simply a named intermediate value in a circuit. The node must
@@ -178,20 +182,22 @@ def NodeOp : FIRRTLOp<"node",
     }];
 
   let arguments = (ins PassiveType:$input, StrAttr:$name,
-                       AnnotationArrayAttr:$annotations);
+                       AnnotationArrayAttr:$annotations,
+                       Variadic<PathType>:$pathSinks);
   let results = (outs FIRRTLType:$result);
 
   let builders = [
     OpBuilder<(ins "::mlir::Type":$elementType,
                    "::mlir::Value":$input,
                    CArg<"StringRef", "{}">:$name,
-                   CArg<"ArrayRef<Attribute>","{}">:$annotations), [{
+                   CArg<"ArrayRef<Attribute>","{}">:$annotations, 
+                   CArg<"ValueRange","{}">:$pathSinks), [{
       return build($_builder, $_state, elementType, input, name,
-                   $_builder.getArrayAttr(annotations));
+                   $_builder.getArrayAttr(annotations), pathSinks);
     }]>
   ];
 
-  let assemblyFormat = "$input custom<ImplicitSSAName>(attr-dict) `:` type($input)";
+  let assemblyFormat = "$input (`paths` $pathSinks^)? custom<ImplicitSSAName>(attr-dict) `:` type($input)";
 
   let hasCanonicalizer = true;
 
@@ -263,7 +269,7 @@ def RegResetOp : FIRRTLOp<"regreset", [/*MemAlloc*/]> {
   ];
 
   let assemblyFormat =
-     "operands custom<ImplicitSSAName>(attr-dict) `:` type($resetSignal) `,` type($resetValue) `,` type($result)";
+     "$clockVal `,` $resetSignal `,` $resetValue (`paths` $pathSinks^)? custom<ImplicitSSAName>(attr-dict) `:` type($resetSignal) `,` type($resetValue) `,` type($result)";
 
   let hasCanonicalizer = true;
 }
@@ -277,17 +283,19 @@ def WireOp : FIRRTLOp<"wire", []> {
     ```
     }];
 
-  let arguments = (ins StrAttr:$name, AnnotationArrayAttr:$annotations);
+  let arguments = (ins StrAttr:$name, AnnotationArrayAttr:$annotations,
+                       Variadic<PathType>:$pathSinks);
   let results = (outs FIRRTLType:$result);
 
   let builders = [
     OpBuilder<(ins "::mlir::Type":$elementType,
                       CArg<"StringRef", "{}">:$name,
-                      CArg<"ArrayRef<Attribute>","{}">:$annotations), [{
+                      CArg<"ArrayRef<Attribute>","{}">:$annotations,
+                      CArg<"ValueRange","ValueRange{}">:$pathSinks), [{
       return build($_builder, $_state, elementType, name,
-                   $_builder.getArrayAttr(annotations));
+                   $_builder.getArrayAttr(annotations), pathSinks);
     }]>
   ];
 
-  let assemblyFormat = "custom<ImplicitSSAName>(attr-dict) `:` type($result)";
+  let assemblyFormat = "(`paths` $pathSinks^)? custom<ImplicitSSAName>(attr-dict) `:` type($result)";
 }

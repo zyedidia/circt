@@ -905,11 +905,13 @@ Operation *InstanceOp::getReferencedModule() {
 void InstanceOp::build(OpBuilder &builder, OperationState &result,
                        TypeRange resultTypes, StringRef moduleName,
                        StringRef name, ArrayRef<Attribute> annotations,
-                       ArrayRef<Attribute> portAnnotations, bool lowerToBind) {
+                       ArrayRef<Attribute> portAnnotations, 
+                       ValueRange pathSinks, bool lowerToBind) {
   result.addAttribute("moduleName", builder.getSymbolRefAttr(moduleName));
   result.addAttribute("name", builder.getStringAttr(name));
   result.addAttribute("annotations", builder.getArrayAttr(annotations));
   result.addAttribute("lowerToBind", builder.getBoolAttr(lowerToBind));
+  result.addOperands(pathSinks);
   result.addTypes(resultTypes);
 
   if (portAnnotations.empty()) {
@@ -1016,7 +1018,7 @@ void MemOp::build(OpBuilder &builder, OperationState &result,
                   uint32_t writeLatency, uint64_t depth, RUWAttr ruw,
                   ArrayRef<Attribute> portNames, StringRef name,
                   ArrayRef<Attribute> annotations,
-                  ArrayRef<Attribute> portAnnotations) {
+                  ArrayRef<Attribute> portAnnotations, ValueRange pathSinks) {
   result.addAttribute(
       "readLatency",
       builder.getIntegerAttr(builder.getIntegerType(32), readLatency));
@@ -1029,6 +1031,7 @@ void MemOp::build(OpBuilder &builder, OperationState &result,
   result.addAttribute("portNames", builder.getArrayAttr(portNames));
   result.addAttribute("name", builder.getStringAttr(name));
   result.addAttribute("annotations", builder.getArrayAttr(annotations));
+  result.addOperands(pathSinks);
   result.addTypes(resultTypes);
 
   if (portAnnotations.empty()) {

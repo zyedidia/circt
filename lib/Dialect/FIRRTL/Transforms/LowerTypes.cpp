@@ -176,7 +176,7 @@ static MemOp cloneMemWithNewType(ImplicitLocOpBuilder *b, MemOp op,
   auto newMem = b->create<MemOp>(
       ports, op.readLatency(), op.writeLatency(), op.depth(), op.ruw(),
       portNames, (op.name() + field.suffix).str(), op.annotations().getValue(),
-      op.portAnnotations().getValue());
+      op.portAnnotations().getValue(), ValueRange{});
 
   SmallVector<Attribute> newAnnotations;
   for (size_t portIdx = 0, e = newMem.getNumResults(); portIdx < e; ++portIdx) {
@@ -816,7 +816,7 @@ void TypeLoweringVisitor::visitDecl(FModuleOp module) {
 void TypeLoweringVisitor::visitDecl(WireOp op) {
   auto clone = [&](FlatBundleFieldEntry field, StringRef name,
                    ArrayAttr attrs) -> Operation * {
-    return builder->create<WireOp>(field.type, name, attrs);
+    return builder->create<WireOp>(field.type, name, attrs, ValueRange{});
   };
   lowerProducer(op, clone);
 }
@@ -846,7 +846,7 @@ void TypeLoweringVisitor::visitDecl(NodeOp op) {
   auto clone = [&](FlatBundleFieldEntry field, StringRef name,
                    ArrayAttr attrs) -> Operation * {
     auto input = getSubWhatever(op.input(), field.index);
-    return builder->create<NodeOp>(field.type, input, name, attrs);
+    return builder->create<NodeOp>(field.type, input, name, attrs, ValueRange{});
   };
   lowerProducer(op, clone);
 }
@@ -917,7 +917,7 @@ void TypeLoweringVisitor::visitDecl(InstanceOp op) {
   // FIXME: annotation update
   auto newInstance = builder->create<InstanceOp>(
       resultTypes, op.moduleNameAttr(), op.nameAttr(), op.annotations(),
-      builder->getArrayAttr(newPortAnno), op.lowerToBindAttr());
+      builder->getArrayAttr(newPortAnno), op.pathSinks(), op.lowerToBindAttr());
 
   SmallVector<Value> lowered;
   for (size_t aggIndex = 0, eAgg = op.getNumResults(); aggIndex != eAgg;

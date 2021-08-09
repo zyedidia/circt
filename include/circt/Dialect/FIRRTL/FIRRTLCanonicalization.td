@@ -23,6 +23,10 @@ def NonConstantOp : Constraint<CPred<"!$0.getDefiningOp<ConstantOp>()">>;
 // there are no FIRRTL annotation on an operation.
 def EmptyAttrDict : Constraint<CPred<"$0.empty()">>;
 
+// Constraint that matches empty path terminators.  Used to ensure that
+// there are no non-local FIRRTL annotation on an operation.
+def EmptyPath : Constraint<CPred<"$0.empty()">>;
+
 // Constraint that enforces equal types
 def EqualTypes : Constraint<CPred<"$0.getType() == $1.getType()">>;
 
@@ -84,9 +88,9 @@ def MuxSameCondHigh : Pat<
 
 // node(x) -> x
 def EmptyNode : Pat<
-  (NodeOp $x, $name, $annotations),
+  (NodeOp $x, $name, $annotations, $path),
   (replaceWithValue $x),
-  [(EmptyAttrDict $annotations)]>;
+  [(EmptyAttrDict $annotations), (EmptyPath $path)]>;
 
 // regreset(clock, invalidvalue, resetValue) -> reg(clock)
 def RegresetWithInvalidReset : Pat<
@@ -97,14 +101,14 @@ def RegresetWithInvalidReset : Pat<
 // regreset(clock, reset, invalidvalue) -> reg(clock)
 // This is handled by the `RemoveReset` pass in the original Scala code.
 def RegresetWithInvalidResetValue : Pat<
-  (RegResetOp $clock, $reset, (InvalidValueOp), $name, $annotations),
-  (RegOp $clock, $name, $annotations),
+  (RegResetOp $clock, $reset, (InvalidValueOp), $name, $annotations, $paths),
+  (RegOp $clock, $name, $annotations, $paths),
   []>;
 
 // regreset(clock, constant_zero, resetValue) -> reg(clock)
 def RegresetWithZeroReset : Pat<
-  (RegResetOp $clock, $reset, $resetValue, $name, $annotations),
-  (RegOp $clock, $name, $annotations), [(ZeroConstantOp $reset)]>;
+  (RegResetOp $clock, $reset, $resetValue, $name, $annotations, $paths),
+  (RegOp $clock, $name, $annotations, $paths), [(ZeroConstantOp $reset)]>;
 
 // Return the width of an operation result as an integer attribute.  This is
 // useful to pad another operation up to the width of the original operation.
