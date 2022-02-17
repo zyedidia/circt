@@ -37,6 +37,9 @@ LogicalResult scheduleSimplex(Problem &prob, Operation *lastOp);
 /// cycles that do not include at least one edge with a non-zero distance.
 LogicalResult scheduleSimplex(CyclicProblem &prob, Operation *lastOp);
 
+/// Solve the ...
+LogicalResult scheduleSimplex(SystolicProblem &prob, Operation *lastOp);
+
 /// Solve the acyclic problem with shared operators using a linear
 /// programming-based heuristic. The approach tries to minimize the start time
 /// of the given \p lastOp, but optimality is not guaranteed. Fails if the

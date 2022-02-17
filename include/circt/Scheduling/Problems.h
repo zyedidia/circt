@@ -295,6 +295,30 @@ public:
   virtual LogicalResult verify() override;
 };
 
+/// This class models a systolic scheduling problem. It is a cyclic problem that
+/// may include systolic delays between operations, which are represented as a
+/// dependence with an integer delay. The II of the solution represents the time
+/// for one "batch" to enter a systolic array. The systolic delays represent
+/// communication delays along a specific channel.
+class SystolicProblem : public virtual CyclicProblem {
+  DEFINE_FACTORY_METHOD(SystolicProblem)
+
+private:
+  DependenceProperty<unsigned> systolicDelays;
+
+public:
+  /// The delay determines the minimum number of cycles within an iteration that
+  /// a dependence must be delayed.
+  Optional<unsigned> getSystolicDelay(Dependence dep) {
+    return systolicDelays.lookup(dep);
+  }
+  void setSystolicDelay(Dependence dep, unsigned val) {
+    systolicDelays[dep] = val;
+  }
+
+  virtual PropertyStringVector getProperties(Dependence dep) override;
+};
+
 /// This class models the accumulation of physical propagation delays on
 /// combinational paths along SSA dependences.
 ///

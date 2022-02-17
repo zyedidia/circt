@@ -194,6 +194,17 @@ LogicalResult CyclicProblem::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// SystolicProblem
+//===----------------------------------------------------------------------===//
+
+Problem::PropertyStringVector SystolicProblem::getProperties(Dependence dep) {
+  auto psv = CyclicProblem::getProperties(dep);
+  if (auto delay = getSystolicDelay(dep))
+    psv.emplace_back("delay", std::to_string(*delay));
+  return psv;
+}
+
+//===----------------------------------------------------------------------===//
 // ChainingProblem
 //===----------------------------------------------------------------------===//
 

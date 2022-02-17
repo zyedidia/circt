@@ -217,6 +217,20 @@ public:
   LogicalResult schedule() override;
 };
 
+/// This class ...
+class SystolicSimplexScheduler : public CyclicSimplexScheduler {
+private:
+  SystolicProblem &prob;
+
+protected:
+  void fillConstraintRow(SmallVector<int> &row,
+                         Problem::Dependence dep) override;
+
+public:
+  SystolicSimplexScheduler(SystolicProblem &prob, Operation *lastOp)
+      : CyclicSimplexScheduler(prob, lastOp), prob(prob) {}
+};
+
 // This class solves acyclic, resource-constrained `SharedOperatorsProblem` with
 // a simplified version of the iterative heuristic presented in [2].
 class SharedOperatorsSimplexScheduler : public SimplexSchedulerBase {
@@ -826,6 +840,18 @@ LogicalResult CyclicSimplexScheduler::schedule() {
 }
 
 //===----------------------------------------------------------------------===//
+// SystolicSimplexScheduler
+//===----------------------------------------------------------------------===//
+
+void SystolicSimplexScheduler::fillConstraintRow(SmallVector<int> &row,
+                                                 Problem::Dependence dep) {
+  CyclicSimplexScheduler::fillConstraintRow(row, dep);
+  // Add delay to latency (note that the latency is negative in the tableau).
+  if (auto delay = prob.getSystolicDelay(dep))
+    row[parameter1Column] -= *delay;
+}
+
+//===----------------------------------------------------------------------===//
 // SharedOperatorsSimplexScheduler
 //===----------------------------------------------------------------------===//
 
@@ -1204,6 +1230,12 @@ LogicalResult scheduling::scheduleSimplex(Problem &prob, Operation *lastOp) {
 LogicalResult scheduling::scheduleSimplex(CyclicProblem &prob,
                                           Operation *lastOp) {
   CyclicSimplexScheduler simplex(prob, lastOp);
+  return simplex.schedule();
+}
+
+LogicalResult scheduling::scheduleSimplex(SystolicProblem &prob,
+                                          Operation *lastOp) {
+  SystolicSimplexScheduler simplex(prob, lastOp);
   return simplex.schedule();
 }
 
