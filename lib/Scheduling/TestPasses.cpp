@@ -135,6 +135,9 @@ static void constructSystolicProblem(SystolicProblem &prob, FuncOp func) {
         assert(succeeded(res));
         (void)res;
       }
+      // Set the dependence as an equality constraint when a fourth item is set.
+      if (elemArr.size() > 3 && elemArr[3] == 1)
+        prob.setConstraintType(dep, Problem::ConstraintType::Equal);
       prob.setSystolicDelay(dep, dist);
     }
   }

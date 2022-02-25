@@ -101,6 +101,8 @@ public:
   /// Operator types are distinguished by name (chosen by the client).
   using OperatorType = mlir::StringAttr;
 
+  enum class ConstraintType { LessEqual, Equal };
+
   //===--------------------------------------------------------------------===//
   // Aliases for containers storing the problem components and properties
   //===--------------------------------------------------------------------===//
@@ -141,6 +143,9 @@ private:
 
   // Operator type properties
   OperatorTypeProperty<unsigned> latency;
+
+  // Dependence properties
+  DependenceProperty<ConstraintType> constraintType;
 
   //===--------------------------------------------------------------------===//
   // Problem construction
@@ -217,6 +222,18 @@ public:
     return startTime.lookup(op);
   }
   void setStartTime(Operation *op, unsigned val) { startTime[op] = val; }
+
+  /// The constraint type dictates the type of constraint for \p dep. By
+  /// default, dependences introduce a <= constaint.
+  Optional<ConstraintType> getConstraintType(Dependence dep) {
+    auto depConstraintType = constraintType.lookup(dep);
+    if (depConstraintType)
+      return depConstraintType;
+    return ConstraintType::LessEqual;
+  }
+  void setConstraintType(Dependence dep, ConstraintType type) {
+    constraintType[dep] = type;
+  }
 
   //===--------------------------------------------------------------------===//
   // Properties as string key-value pairs (e.g. for DOT graphs)

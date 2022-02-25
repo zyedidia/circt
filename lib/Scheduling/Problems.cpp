@@ -65,7 +65,13 @@ Problem::PropertyStringVector Problem::getProperties(Operation *op) {
 }
 
 Problem::PropertyStringVector Problem::getProperties(Dependence dep) {
-  return {};
+  PropertyStringVector psv;
+  if (auto constraintType = getConstraintType(dep))
+    // Only print the constraint type if it isn't LessEqual, the default.
+    if (*constraintType == ConstraintType::Equal)
+      psv.emplace_back("constraint", "==");
+
+  return psv;
 }
 
 Problem::PropertyStringVector Problem::getProperties(OperatorType opr) {
