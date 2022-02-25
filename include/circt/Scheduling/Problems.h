@@ -144,9 +144,6 @@ private:
   // Operator type properties
   OperatorTypeProperty<unsigned> latency;
 
-  // Dependence properties
-  DependenceProperty<ConstraintType> constraintType;
-
   //===--------------------------------------------------------------------===//
   // Problem construction
   //===--------------------------------------------------------------------===//
@@ -222,18 +219,6 @@ public:
     return startTime.lookup(op);
   }
   void setStartTime(Operation *op, unsigned val) { startTime[op] = val; }
-
-  /// The constraint type dictates the type of constraint for \p dep. By
-  /// default, dependences introduce a <= constaint.
-  Optional<ConstraintType> getConstraintType(Dependence dep) {
-    auto depConstraintType = constraintType.lookup(dep);
-    if (depConstraintType)
-      return depConstraintType;
-    return ConstraintType::LessEqual;
-  }
-  void setConstraintType(Dependence dep, ConstraintType type) {
-    constraintType[dep] = type;
-  }
 
   //===--------------------------------------------------------------------===//
   // Properties as string key-value pairs (e.g. for DOT graphs)
@@ -324,6 +309,21 @@ private:
   DependenceProperty<unsigned> systolicDelays;
 
 public:
+  // Dependence properties
+  DependenceProperty<ConstraintType> constraintType;
+
+  /// The constraint type dictates the type of constraint for \p dep. By
+  /// default, dependences introduce a <= constaint.
+  Optional<ConstraintType> getConstraintType(Dependence dep) {
+    auto depConstraintType = constraintType.lookup(dep);
+    if (depConstraintType)
+      return depConstraintType;
+    return ConstraintType::LessEqual;
+  }
+  void setConstraintType(Dependence dep, ConstraintType type) {
+    constraintType[dep] = type;
+  }
+
   /// The delay determines the minimum number of cycles within an iteration that
   /// a dependence must be delayed.
   Optional<unsigned> getSystolicDelay(Dependence dep) {

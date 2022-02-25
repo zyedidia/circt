@@ -65,13 +65,7 @@ Problem::PropertyStringVector Problem::getProperties(Operation *op) {
 }
 
 Problem::PropertyStringVector Problem::getProperties(Dependence dep) {
-  PropertyStringVector psv;
-  if (auto constraintType = getConstraintType(dep))
-    // Only print the constraint type if it isn't LessEqual, the default.
-    if (*constraintType == ConstraintType::Equal)
-      psv.emplace_back("constraint", "==");
-
-  return psv;
+  return {};
 }
 
 Problem::PropertyStringVector Problem::getProperties(OperatorType opr) {
@@ -205,6 +199,13 @@ LogicalResult CyclicProblem::verify() {
 
 Problem::PropertyStringVector SystolicProblem::getProperties(Dependence dep) {
   auto psv = CyclicProblem::getProperties(dep);
+
+  if (auto constraintType = getConstraintType(dep))
+    // Only print the constraint type if it isn't LessEqual, the default.
+    if (*constraintType == ConstraintType::Equal)
+      psv.emplace_back("constraint", "==");
+
+  return psv;
   if (auto delay = getSystolicDelay(dep))
     psv.emplace_back("delay", std::to_string(*delay));
   return psv;
