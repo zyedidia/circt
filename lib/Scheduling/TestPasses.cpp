@@ -699,6 +699,79 @@ void TestLPSchedulerPass::runOnOperation() {
 #endif // SCHEDULING_OR_TOOLS
 
 //===----------------------------------------------------------------------===//
+// DOT emitter
+//===----------------------------------------------------------------------===//
+namespace {
+struct TestDOTEmitterPass
+    : public PassWrapper<TestDOTEmitterPass, OperationPass<FuncOp>> {
+  TestDOTEmitterPass() = default;
+  TestDOTEmitterPass(const TestDOTEmitterPass &) {}
+  Option<std::string> outputFile{*this, "output", llvm::cl::init("out.dot")};
+  Option<std::string> problemToTest{*this, "with", llvm::cl::init("Problem")};
+  void runOnOperation() override;
+  StringRef getArgument() const override { return "test-scheduling-dot"; }
+  StringRef getDescription() const override {
+    return "Emit a DOT representation of the problem.";
+  }
+};
+} // anonymous namespace
+
+void TestDOTEmitterPass::runOnOperation() {
+  auto func = getOperation();
+
+  if (problemToTest == "Problem") {
+    auto prob = Problem::get(func);
+    constructProblem(prob, func);
+    dumpAsDOT(prob, outputFile);
+    return;
+  }
+
+  if (problemToTest == "CyclicProblem") {
+    auto prob = CyclicProblem::get(func);
+    constructProblem(prob, func);
+    constructCyclicProblem(prob, func);
+    dumpAsDOT(prob, outputFile);
+    return;
+  }
+
+  if (problemToTest == "SystolicProblem") {
+    auto prob = SystolicProblem::get(func);
+    constructProblem(prob, func);
+    constructCyclicProblem(prob, func);
+    constructSystolicProblem(prob, func);
+    dumpAsDOT(prob, outputFile);
+    return;
+  }
+
+  if (problemToTest == "SharedOperatorsProblem") {
+    auto prob = SharedOperatorsProblem::get(func);
+    constructProblem(prob, func);
+    constructSharedOperatorsProblem(prob, func);
+    dumpAsDOT(prob, outputFile);
+    return;
+  }
+
+  if (problemToTest == "ModuloProblem") {
+    auto prob = ModuloProblem::get(func);
+    constructProblem(prob, func);
+    constructCyclicProblem(prob, func);
+    constructSharedOperatorsProblem(prob, func);
+    dumpAsDOT(prob, outputFile);
+    return;
+  }
+
+  if (problemToTest == "ChainingProblem") {
+    auto prob = ChainingProblem::get(func);
+    constructProblem(prob, func);
+    constructChainingProblem(prob, func);
+    dumpAsDOT(prob, outputFile);
+    return;
+  }
+
+  llvm_unreachable("Unsupported scheduling problem");
+}
+
+//===----------------------------------------------------------------------===//
 // Pass registration
 //===----------------------------------------------------------------------===//
 
@@ -734,6 +807,9 @@ void registerSchedulingTestPasses() {
     return std::make_unique<TestLPSchedulerPass>();
   });
 #endif
+  mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass> {
+    return std::make_unique<TestDOTEmitterPass>();
+  });
 }
 } // namespace test
 } // namespace circt
