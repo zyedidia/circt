@@ -225,10 +225,13 @@ private:
 protected:
   void fillConstraintRow(SmallVector<int> &row,
                          Problem::Dependence dep) override;
+  void fillAdditionalConstraintRow(SmallVector<int> &row,
+                                   Problem::Dependence dep) override;
 
 public:
   SystolicSimplexScheduler(SystolicProblem &prob, Operation *lastOp)
       : CyclicSimplexScheduler(prob, lastOp), prob(prob) {}
+  LogicalResult schedule() override;
 };
 
 // This class solves acyclic, resource-constrained `SharedOperatorsProblem` with
@@ -842,6 +845,18 @@ LogicalResult CyclicSimplexScheduler::schedule() {
 //===----------------------------------------------------------------------===//
 // SystolicSimplexScheduler
 //===----------------------------------------------------------------------===//
+LogicalResult SystolicSimplexScheduler::schedule() {
+  // Mark all dependences with equality constraint type to have an additional
+  // constraint.
+  for (auto op : prob.getOperations())
+    for (auto dep : prob.getDependences(op))
+      if (auto constraintType = prob.getConstraintType(dep))
+        if (*constraintType == Problem::ConstraintType::Equal)
+          additionalConstraints.push_back(dep);
+
+  // Call the cyclic schedule method.
+  return CyclicSimplexScheduler::schedule();
+}
 
 void SystolicSimplexScheduler::fillConstraintRow(SmallVector<int> &row,
                                                  Problem::Dependence dep) {
@@ -849,6 +864,35 @@ void SystolicSimplexScheduler::fillConstraintRow(SmallVector<int> &row,
   // Add delay to latency (note that the latency is negative in the tableau).
   if (auto delay = prob.getSystolicDelay(dep))
     row[parameter1Column] -= *delay;
+}
+
+// When the dep has equality contstraint type, add a second constraint. This
+// amounts to adding a matching row with the coefficients negated with respect
+// to fillConstraintRow.
+void SystolicSimplexScheduler::fillAdditionalConstraintRow(
+    SmallVector<int> &row, Problem::Dependence dep) {
+  assert(prob.getConstraintType(dep) == Problem::ConstraintType::Equal);
+
+  // TODO: if fillConstraintRow was parameterized by a +/- 1 coefficient in all
+  // of the base classes, this could reuse it.
+
+  // SimplexSchedulerBase constraints.
+  Operation *src = dep.getSource();
+  Operation *dst = dep.getDestination();
+  unsigned latency = *prob.getLatency(*prob.getLinkedOperatorType(src));
+  row[parameter1Column] = latency; // note the lack of negation
+  if (src != dst) { // note that these coefficients just zero out in self-arcs.
+    row[startTimeLocations[startTimeVariables[src]]] = -1; // note the negation
+    row[startTimeLocations[startTimeVariables[dst]]] = 1;
+  }
+
+  // CyclicSimplexScheduler constraints.
+  if (auto dist = prob.getDistance(dep))
+    row[parameterTColumn] = *dist;
+
+  // SystolicSimplexScheduler constraints.
+  if (auto delay = prob.getSystolicDelay(dep))
+    row[parameter1Column] += *delay; // note the lack of negation
 }
 
 //===----------------------------------------------------------------------===//

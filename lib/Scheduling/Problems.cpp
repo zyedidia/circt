@@ -205,9 +205,9 @@ Problem::PropertyStringVector SystolicProblem::getProperties(Dependence dep) {
     if (*constraintType == ConstraintType::Equal)
       psv.emplace_back("constraint", "==");
 
-  return psv;
   if (auto delay = getSystolicDelay(dep))
     psv.emplace_back("delay", std::to_string(*delay));
+
   return psv;
 }
 
