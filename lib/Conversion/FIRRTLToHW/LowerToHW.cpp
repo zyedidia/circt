@@ -1335,11 +1335,11 @@ struct FIRRTLLowering : public FIRRTLVisitor<FIRRTLLowering, LogicalResult> {
   void addToAlwaysBlock(sv::EventControl clockEdge, Value clock,
                         ::ResetType resetStyle, sv::EventControl resetEdge,
                         Value reset, std::function<void(void)> body = {},
-                        std::function<void(void)> resetBody = {});
-  void addToAlwaysBlock(Value clock, std::function<void(void)> body = {}) {
+                        std::function<void(void)> resetBody = {}, bool uniqueBlock = false);
+  void addToAlwaysBlock(Value clock, std::function<void(void)> body = {}, bool uniqueBlock = false) {
     addToAlwaysBlock(sv::EventControl::AtPosEdge, clock, ::ResetType(),
                      sv::EventControl(), Value(), body,
-                     std::function<void(void)>());
+                     std::function<void(void)>(), uniqueBlock);
   }
 
   void addToIfDefBlock(StringRef cond, std::function<void(void)> thenCtor,
@@ -2038,11 +2038,16 @@ void FIRRTLLowering::addToAlwaysBlock(sv::EventControl clockEdge, Value clock,
                                       ::ResetType resetStyle,
                                       sv::EventControl resetEdge, Value reset,
                                       std::function<void(void)> body,
-                                      std::function<void(void)> resetBody) {
-  auto &op = alwaysBlocks[{builder.getBlock(), clockEdge, clock, resetStyle,
-                           resetEdge, reset}];
-  auto &alwaysOp = op.first;
-  auto &insideIfOp = op.second;
+                                      std::function<void(void)> resetBody, bool uniqueBlock) {
+  Operation *alwaysOp = nullptr;
+  Operation *insideIfOp = nullptr;
+
+  if (!uniqueBlock) {
+    auto &op = alwaysBlocks[{builder.getBlock(), clockEdge, clock, resetStyle,
+                       resetEdge, reset}];
+    alwaysOp = op.first;
+    insideIfOp = op.second;
+  }
 
   if (!alwaysOp) {
     if (reset) {
@@ -2074,22 +2079,28 @@ void FIRRTLLowering::addToAlwaysBlock(sv::EventControl clockEdge, Value clock,
             llvm_unreachable("negative edge for reset is not expected");
           createIfOp();
         });
+	if (uniqueBlock)
+	  alwaysOp->setAttr("dont_merge", builder.getUnitAttr());
       } else {
         alwaysOp = builder.create<sv::AlwaysOp>(clockEdge, clock, createIfOp);
+	if (uniqueBlock)
+	  alwaysOp->setAttr("dont_merge", builder.getUnitAttr());
       }
     } else {
       assert(!resetBody);
       alwaysOp = builder.create<sv::AlwaysOp>(clockEdge, clock);
+      if (uniqueBlock)
+	alwaysOp->setAttr("dont_merge", builder.getUnitAttr());
       insideIfOp = nullptr;
     }
   }
 
   if (reset) {
     assert(insideIfOp && "reset body must be initialized before");
-    runWithInsertionPointAtEndOfBlock(resetBody, insideIfOp.thenRegion());
-    runWithInsertionPointAtEndOfBlock(body, insideIfOp.elseRegion());
+    runWithInsertionPointAtEndOfBlock(resetBody, insideIfOp->getRegion(0));
+    runWithInsertionPointAtEndOfBlock(body, insideIfOp->getRegion(1));
   } else {
-    runWithInsertionPointAtEndOfBlock(body, alwaysOp.body());
+    runWithInsertionPointAtEndOfBlock(body, alwaysOp->getRegion(0));
   }
 
   // Move the earlier always block(s) down to where the last would have been
@@ -3583,7 +3594,7 @@ LogicalResult FIRRTLLowering::visitStmt(PrintFOp op) {
         builder.create<sv::FWriteOp>(fdStderr, op.formatString(), operands);
       });
     });
-  });
+  }, /*uniqueBlock=*/true);
 
   return success();
 }
@@ -3614,7 +3625,7 @@ LogicalResult FIRRTLLowering::visitStmt(StopOp op) {
           builder.create<sv::FinishOp>();
       });
     });
-  });
+  }, /*uniqueBlock=*/true);
 
   return success();
 }
@@ -3717,7 +3728,7 @@ LogicalResult FIRRTLLowering::lowerVerificationStatement(
           buildImmediateVerifOp(builder, opName, predicate, deferImmediate,
                                 prefixedLabel, message, messageOps);
         });
-      });
+      }, /*uniqueBlock=*/true);
       return;
     }
 
@@ -3745,7 +3756,7 @@ LogicalResult FIRRTLLowering::lowerVerificationStatement(
                 [&]() { builder.create<sv::FatalOp>(); });
           });
         });
-      });
+      }, /*uniqueBlock=*/true);
       return;
     }
 

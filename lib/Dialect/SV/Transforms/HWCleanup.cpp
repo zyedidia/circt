@@ -156,7 +156,7 @@ void HWCleanupPass::runOnGraphRegion(Region &region) {
   for (Operation &op : llvm::make_early_inc_range(body)) {
     // Merge alwaysff and always operations by hashing them to check to see if
     // we've already encountered one.  If so, merge them and reprocess the body.
-    if (isa<sv::AlwaysOp, sv::AlwaysFFOp>(op)) {
+    if (isa<sv::AlwaysOp, sv::AlwaysFFOp>(op) && !op.hasAttr("dont_merge")) {
       // Merge identical alwaysff's together and delete the old operation.
       auto itAndInserted = alwaysFFOpsSeen.insert(&op);
       if (itAndInserted.second)
