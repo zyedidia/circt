@@ -2584,11 +2584,11 @@ LogicalResult FIRRTLLowering::visitDecl(RegResetOp op) {
     }
     addToAlwaysBlock(sv::EventControl::AtPosEdge, clockVal,
                      ::ResetType::AsyncReset, sv::EventControl::AtPosEdge,
-                     resetSignal, std::function<void()>(), resetFn);
+                     resetSignal, std::function<void()>(), resetFn, /*uniqueBlock=*/true);
   } else { // sync reset
     addToAlwaysBlock(sv::EventControl::AtPosEdge, clockVal,
                      ::ResetType::SyncReset, sv::EventControl::AtPosEdge,
-                     resetSignal, std::function<void()>(), resetFn);
+                     resetSignal, std::function<void()>(), resetFn, /*uniqueBlock=*/true);
   }
   initializeRegister(regResult);
   return success();
@@ -3381,7 +3381,7 @@ LogicalResult FIRRTLLowering::visitStmt(ConnectOp op) {
       return failure();
 
     addToAlwaysBlock(clockVal,
-                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); });
+                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); }, /*uniqueBlock=*/true);
     return success();
   }
 
@@ -3398,7 +3398,7 @@ LogicalResult FIRRTLLowering::visitStmt(ConnectOp op) {
                          ? ::ResetType::AsyncReset
                          : ::ResetType::SyncReset,
                      sv::EventControl::AtPosEdge, resetSignal,
-                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); });
+                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); }, std::function<void()>(), /*uniqueBlock=*/true);
     return success();
   }
 
@@ -3434,7 +3434,7 @@ LogicalResult FIRRTLLowering::visitStmt(PartialConnectOp op) {
       return failure();
 
     addToAlwaysBlock(clockVal,
-                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); });
+                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); }, /*uniqueBlock=*/true);
     return success();
   }
 
@@ -3451,7 +3451,7 @@ LogicalResult FIRRTLLowering::visitStmt(PartialConnectOp op) {
                           : ::ResetType::SyncReset;
     addToAlwaysBlock(sv::EventControl::AtPosEdge, clockVal, resetStyle,
                      sv::EventControl::AtPosEdge, resetSignal,
-                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); });
+                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); }, std::function<void()>(), /*uniqueBlock=*/true);
     return success();
   }
 
@@ -3515,7 +3515,7 @@ LogicalResult FIRRTLLowering::visitStmt(StrictConnectOp op) {
       return failure();
 
     addToAlwaysBlock(clockVal,
-                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); });
+                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); }, /*uniqueBlock=*/true);
     return success();
   }
 
@@ -3532,7 +3532,7 @@ LogicalResult FIRRTLLowering::visitStmt(StrictConnectOp op) {
                          ? ::ResetType::AsyncReset
                          : ::ResetType::SyncReset,
                      sv::EventControl::AtPosEdge, resetSignal,
-                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); });
+                     [&]() { builder.create<sv::PAssignOp>(destVal, srcVal); }, std::function<void()>(), /*uniqueBlock=*/true);
     return success();
   }
 
