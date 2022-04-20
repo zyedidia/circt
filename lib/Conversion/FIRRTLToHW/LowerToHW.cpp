@@ -3593,8 +3593,8 @@ LogicalResult FIRRTLLowering::visitStmt(PrintFOp op) {
         Value fdStderr = builder.create<hw::ConstantOp>(APInt(32, 0x80000002));
         builder.create<sv::FWriteOp>(fdStderr, op.formatString(), operands);
       });
-    });
-  }, /*uniqueBlock=*/true);
+    }, /*uniqueBlock=*/true);
+  });
 
   return success();
 }
@@ -3624,8 +3624,8 @@ LogicalResult FIRRTLLowering::visitStmt(StopOp op) {
         else
           builder.create<sv::FinishOp>();
       });
-    });
-  }, /*uniqueBlock=*/true);
+    }, /*uniqueBlock=*/true);
+  });
 
   return success();
 }
@@ -3755,8 +3755,8 @@ LogicalResult FIRRTLLowering::lowerVerificationStatement(
                 builder.create<sv::VerbatimExprOp>(boolType, "`STOP_COND_"),
                 [&]() { builder.create<sv::FatalOp>(); });
           });
-        });
-      }, /*uniqueBlock=*/true);
+        }, /*uniqueBlock=*/true);
+      });
       return;
     }
 
