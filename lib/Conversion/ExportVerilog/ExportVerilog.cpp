@@ -137,6 +137,10 @@ static bool isDuplicatableNullaryExpression(Operation *op) {
 // uses. Be careful to add operations here since it might cause exponential
 // emission without proper restrictions.
 static bool isDuplicatableExpression(Operation *op) {
+  // YOLO, duplicate all comb expressions.
+  if (isa<CombDialect>(op->getDialect()))
+    return true;
+
   if (op->getNumOperands() == 0)
     return isDuplicatableNullaryExpression(op);
 
