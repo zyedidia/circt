@@ -3177,18 +3177,23 @@ ParseResult FIRStmtParser::parseNode() {
   auto sym = getSymbolIfRequired(annotations, id);
   auto isNamed =
       !getConstants().options.disableNamePreservation && ::isNamed(id);
-  auto result = builder.create<NodeOp>(initializer.getType(), initializer,
-                                       isNamed ? (Twine("_") + id).str() : id,
-                                       annotations, sym);
-  // If the node is named, then add a debug tap.
+
+  // If the node is named, then add a wire.
   //
   // TODO: Change this once the FIRRTL spec supports "named" vs. "unnamed"
   // nodes.
-  if (isNamed)
-    builder.create<NodeOp>(
-        initializer.getType(), result, id, getConstants().emptyArrayAttr,
-        StringAttr::get(annotations.getContext(), modNameSpace.newName(id)));
-  return moduleContext.addSymbolEntry(id, result, startTok.getLoc());
+  Operation *result;
+  if (isNamed) {
+    result =
+        builder.create<WireOp>(initializer.getType(), id, annotations, sym);
+    connectDebugValue(builder, result->getResult(0), initializer);
+  } else {
+    result = builder.create<NodeOp>(initializer.getType(), initializer, id,
+                                    annotations, sym);
+  }
+
+  return moduleContext.addSymbolEntry(id, result->getResult(0),
+                                      startTok.getLoc());
 }
 
 /// wire ::= 'wire' id ':' type info?
@@ -3216,26 +3221,7 @@ ParseResult FIRStmtParser::parseWire() {
                        moduleContext.targetsInModule, type);
 
   auto sym = getSymbolIfRequired(annotations, id);
-  auto isNamed =
-      !getConstants().options.disableNamePreservation && ::isNamed(id);
-  auto result = builder.create<WireOp>(
-      type, isNamed ? (Twine("_") + id).str() : id, annotations, sym);
-  // If the wire is named, then add a debug tap.
-  //
-  // TODO: Change this once the FIRRTL spec supports "named" vs. "unnamed"
-  // wires.
-  if (isNamed) {
-    if (type.isPassive())
-      builder.create<NodeOp>(
-          type, result, id, getConstants().emptyArrayAttr,
-          StringAttr::get(annotations.getContext(), modNameSpace.newName(id)));
-    else {
-      auto debug = builder.create<WireOp>(
-          type.getPassiveType(), id, getConstants().emptyArrayAttr,
-          StringAttr::get(annotations.getContext(), modNameSpace.newName(id)));
-      connectDebugValue(builder, debug, result);
-    }
-  }
+  auto result = builder.create<WireOp>(type, id, annotations, sym);
   return moduleContext.addSymbolEntry(id, result, startTok.getLoc());
 }
 
