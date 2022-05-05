@@ -1151,7 +1151,7 @@ void WireOp::getAsmResultNames(OpAsmSetValueNameFn setNameFn) {
 // If this wire is only written to, delete the wire and all writers.
 LogicalResult WireOp::canonicalize(WireOp wire, PatternRewriter &rewriter) {
   // If the wire has a symbol, then we can't delete it.
-  if (wire.inner_symAttr())
+  if (wire.inner_symAttr() && !wire.inner_sym().getValue().startswith("____"))
     return failure();
 
   // Wires have inout type, so they'll have assigns and read_inout operations

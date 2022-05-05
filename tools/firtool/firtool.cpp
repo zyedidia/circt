@@ -650,6 +650,11 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
     module->print(outputFile.getValue()->os());
   }
 
+  std::string e;
+  std::unique_ptr<llvm::ToolOutputFile> mlirOutput= openOutputFile("design.mlir", &e);
+  module->print(mlirOutput->os());
+  mlirOutput->keep();  
+
   // We intentionally "leak" the Module into the MLIRContext instead of
   // deallocating it.  There is no need to deallocate it right before process
   // exit.
