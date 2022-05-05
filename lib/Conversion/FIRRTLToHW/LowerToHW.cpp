@@ -2296,7 +2296,7 @@ LogicalResult FIRRTLLowering::visitDecl(WireOp op) {
   if (!symName && !isUselessName(name)) {
     auto moduleName = cast<hw::HWModuleOp>(op->getParentOp()).getName();
     symName = builder.getStringAttr(moduleNamespace.newName(
-        Twine("__") + moduleName + Twine("__") + name.getValue()));
+        Twine("____") + moduleName + Twine("__") + name.getValue()));
   }
   // This is not a temporary wire created by the compiler, so attach a symbol
   // name.
@@ -2347,7 +2347,7 @@ LogicalResult FIRRTLLowering::visitDecl(NodeOp op) {
   }
   if (!symName && !isUselessName(name)) {
     auto moduleName = cast<hw::HWModuleOp>(op->getParentOp()).getName();
-    symName = builder.getStringAttr(Twine("__") + moduleName + Twine("__") +
+    symName = builder.getStringAttr(Twine("____") + moduleName + Twine("__") +
                                     name.getValue());
   }
 

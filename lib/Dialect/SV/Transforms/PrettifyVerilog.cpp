@@ -256,6 +256,18 @@ void PrettifyVerilogPass::processPostOrder(Block &body) {
           processPostOrder(regionBlock);
     }
 
+    auto wire = dyn_cast<sv::WireOp>(op);
+    if (wire && wire.inner_sym().hasValue() &&
+        wire.inner_sym().getValue().startswith("____") &&
+        llvm::all_of(wire->getUsers(), [](Operation *user) {
+          return isa<sv::AssignOp>(user);
+        })) {
+      for (auto *op : wire->getUsers())
+        op->erase();
+      wire->erase();
+      continue;
+    }
+
     // Sink and duplicate unary operators.
     if (isVerilogUnaryOperator(&op) && prettifyUnaryOperator(&op))
       continue;
