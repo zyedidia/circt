@@ -1362,6 +1362,25 @@ hw.module @NestedElseIfHoist(%clock: i1, %flag1 : i1, %flag2: i1, %flag3: i1, %f
   hw.output
 }
 
+// CHECK-LABEL: module redundant_wire
+// CHECK: input  [[INPUT:.+]],
+// CHECK: output [[OUTPUT:.+]])
+hw.module @redundant_wire(%input: i1) -> (out1: i1) {
+  // CHECK-NOT wire a
+  %a = sv.wire : !hw.inout<i1>
+  sv.assign %a, %input : i1
+  %0 = sv.read_inout %a : !hw.inout<i1>
+
+  // CHECK: wire b
+  // CHECK: assign b = [[INPUT]]
+  %b = sv.wire : !hw.inout<i1>
+  sv.assign %b, %0 : i1
+  %1 = sv.read_inout %b : !hw.inout<i1>
+
+  // CHECK: assign [[OUTPUT]] = b
+  hw.output %1 : i1
+}
+
 hw.module @bindInMod() {
   sv.bind #hw.innerNameRef<@remoteInstDut::@bindInst>
   sv.bind #hw.innerNameRef<@remoteInstDut::@bindInst3>

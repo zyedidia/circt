@@ -377,6 +377,81 @@ static bool isMovableDeclaration(Operation *op) {
          op->getNumOperands() == 0;
 }
 
+// Eliminate wires with a single writer, which are read and assigned to
+// another wire. The value written to the original wire can be written to
+// the other wire directly, and all other reads of the original wire can
+// read the other wire. This is basically store to load forwarding.
+static void removeRedundantWire(Operation *op,
+                                SmallVectorImpl<Operation *> &opsToErase) {
+  // See if this is a wire.
+  auto wireOp = dyn_cast<sv::WireOp>(op);
+  if (!wireOp)
+    return;
+
+  // We can't erase wires with symbols.
+  if (wireOp.inner_sym().hasValue())
+    return;
+
+  // Iterate the users of the wire, looking for a single writer and reads.
+  sv::AssignOp writer;
+  sv::AssignOp forwardedWriter;
+  SmallVector<sv::ReadInOutOp> readers;
+  for (auto *user : wireOp->getUsers()) {
+    // If it's a write and we haven't encountered a write to this wire yet,
+    // remember it. If we have, this has multiple writers, and we can't forward
+    // the value, so we bail out.
+    if (auto assign = dyn_cast<sv::AssignOp>(user)) {
+      if (!writer) {
+        writer = assign;
+        continue;
+      }
+      return;
+    }
+
+    // If it's a read, remember it. Look to see if there is a single assign
+    // using the read value. If there is, we can forward to there. If not, we
+    // bail out.
+    if (auto read = dyn_cast<sv::ReadInOutOp>(user)) {
+      readers.push_back(read);
+      for (auto *user : read->getUsers()) {
+        if (auto assign = dyn_cast<sv::AssignOp>(user)) {
+          if (!forwardedWriter) {
+            forwardedWriter = assign;
+            continue;
+          }
+          return;
+        }
+      }
+      continue;
+    }
+
+    // If something else uses this, we don't handle it.
+    return;
+  }
+
+  // If nothing to forward, we are done.
+  if (!forwardedWriter)
+    return;
+
+  // Forward the value through the wire.
+  forwardedWriter.srcMutable().assign(writer.src());
+
+  // Either remove the reads, or update them to use the forwarded wire.
+  for (auto read : readers) {
+    if (read->use_empty()) {
+      read->erase();
+      continue;
+    }
+    read.inputMutable().assign(forwardedWriter.dest());
+  }
+
+  // Clean up the redundant wire.
+  opsToErase.push_back(writer);
+  opsToErase.push_back(wireOp);
+
+  return;
+}
+
 /// For each module we emit, do a prepass over the structure, pre-lowering and
 /// otherwise rewriting operations we don't want to emit.
 void ExportVerilog::prepareHWModule(Block &block,
@@ -396,6 +471,7 @@ void ExportVerilog::prepareHWModule(Block &block,
 
   // True if these operations are in a procedural region.
   bool isProceduralRegion = block.getParentOp()->hasTrait<ProceduralRegion>();
+  SmallVector<Operation *> opsToErase;
   for (Block::iterator opIterator = block.begin(), e = block.end();
        opIterator != e;) {
     auto &op = *opIterator++;
@@ -530,11 +606,19 @@ void ExportVerilog::prepareHWModule(Block &block,
         }
       }
     }
+
+    // Perform load to store forwarding for redundant wires.
+    removeRedundantWire(&op, opsToErase);
   }
 
-  // Now that all the basic ops are settled, check for any use-before def issues
-  // in graph regions.  Lower these into explicit wires to keep the emitter
-  // simple.
+  // Perform any deferred erasures from the previous walk through the block. All
+  // ops are assumed to be legal to erase by now.
+  for (auto *op : opsToErase)
+    op->erase();
+
+  // Now that all the basic ops are settled, check for any use-before def
+  // issues in graph regions.  Lower these into explicit wires to keep the
+  // emitter simple.
   if (!isProceduralRegion) {
     SmallPtrSet<Operation *, 32> seenOperations;
 
