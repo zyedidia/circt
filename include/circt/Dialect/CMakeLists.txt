@@ -11,6 +11,7 @@
 
 add_subdirectory(Calyx)
 add_subdirectory(Comb)
+add_subdirectory(Domain)
 add_subdirectory(ESI)
 add_subdirectory(FIRRTL)
 add_subdirectory(FSM)
