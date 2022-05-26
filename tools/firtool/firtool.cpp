@@ -122,10 +122,19 @@ static cl::opt<bool> replSeqMem(
         "replace the seq mem for macro replacement and emit relevant metadata"),
     cl::init(false), cl::cat(mainCategory));
 
-static cl::opt<bool>
-    preserveAggregate("preserve-aggregate",
-                      cl::desc("preserve aggregate types in lower types"),
-                      cl::init(false), cl::cat(mainCategory));
+static cl::opt<circt::firrtl::AggregatePreservationKind> preserveAggregate(
+    "preserve-aggregate", cl::desc("Specify input file format:"),
+    llvm::cl::values(
+        clEnumValN(::circt::firrtl::AggregatePreservationKind::PreserveNone,
+                   "none", "None (default)"),
+        clEnumValN(::circt::firrtl::AggregatePreservationKind::OneDimVec,
+                   "one-dim-vec", "1D Vec"),
+        clEnumValN(::circt::firrtl::AggregatePreservationKind::Vec, "vec",
+                   "Vec"),
+        clEnumValN(::circt::firrtl::AggregatePreservationKind::All, "all",
+                   "All (vector and bundle)")),
+    cl::init(circt::firrtl::AggregatePreservationKind::PreserveNone),
+    cl::cat(mainCategory));
 
 static cl::opt<bool> preservePublicTypes(
     "preserve-public-types",
@@ -515,7 +524,7 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
   // things up.
   if (lowerTypes) {
     pm.addNestedPass<firrtl::CircuitOp>(firrtl::createLowerFIRRTLTypesPass(
-        preserveAggregate, preservePublicTypes));
+        circt::firrtl::AggregatePreservationKind::PreserveNone, preservePublicTypes));
     // Only enable expand whens if lower types is also enabled.
     if (expandWhens) {
       auto &modulePM = pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>();

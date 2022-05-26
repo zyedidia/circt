@@ -13,6 +13,7 @@
 #ifndef CIRCT_DIALECT_FIRRTL_PASSES_H
 #define CIRCT_DIALECT_FIRRTL_PASSES_H
 
+#include "circt/Dialect/FIRRTL/FIRRTLOption.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "llvm/ADT/Optional.h"
 #include <memory>
@@ -28,9 +29,10 @@ std::unique_ptr<mlir::Pass>
 createLowerFIRRTLAnnotationsPass(bool ignoreUnhandledAnnotations = false,
                                  bool ignoreClasslessAnnotations = false);
 
-std::unique_ptr<mlir::Pass>
-createLowerFIRRTLTypesPass(bool preserveAggregate = false,
-                           bool preservePublicTypes = true);
+std::unique_ptr<mlir::Pass> createLowerFIRRTLTypesPass(
+    circt::firrtl::AggregatePreservationKind kind =
+        circt::firrtl::AggregatePreservationKind::PreserveNone,
+    bool preservePublicTypes = true);
 
 std::unique_ptr<mlir::Pass> createLowerBundleVectorTypesPass();
 

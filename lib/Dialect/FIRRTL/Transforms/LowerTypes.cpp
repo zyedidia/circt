@@ -100,22 +100,60 @@ static bool hasZeroBitWidth(FIRRTLType type) {
       });
 }
 
+/// Return true if the type has more than zero bitwidth.
+static bool isOneDimVectorType(FIRRTLType type) {
+  return TypeSwitch<FIRRTLType, bool>(type)
+      .Case<BundleType>([&](auto bundle) { return false; })
+      .Case<FVectorType>([&](FVectorType vector) {
+        return vector.getElementType().isa<IntType>();
+      })
+      .Default([](auto groundType) { return true; });
+}
+
+/// Return true if the type has more than zero bitwidth.
+static bool isVectorType(FIRRTLType type) {
+  return TypeSwitch<FIRRTLType, bool>(type)
+      .Case<BundleType>([&](auto bundle) { return false; })
+      .Case<FVectorType>([&](FVectorType vector) {
+        return isVectorType(vector.getElementType());
+      })
+      .Default([](auto groundType) { return true; });
+}
+
 /// Return true if we can preserve the aggregate type. We can a preserve the
 /// type iff (i) the type is not passive, (ii) the type doesn't contain analog
 /// and (iii) type don't contain zero bitwidth.
-static bool isPreservableAggregateType(Type type) {
+static bool isPreservableAggregateType(Type type,
+                                       AggregatePreservationKind kind) {
   auto firrtlType = type.cast<FIRRTLType>();
-  return firrtlType.isPassive() && !firrtlType.containsAnalog() &&
-         !hasZeroBitWidth(firrtlType);
+  if (kind == AggregatePreservationKind::PreserveNone)
+    return false;
+
+  if (!firrtlType.isPassive() || firrtlType.containsAnalog() ||
+      hasZeroBitWidth(firrtlType))
+    return false;
+
+  if (kind == AggregatePreservationKind::All)
+    return true;
+
+  if (kind == AggregatePreservationKind::Vec)
+    return isOneDimVectorType(firrtlType);
+
+  if (kind == AggregatePreservationKind::OneDimVec)
+    return isVectorType(firrtlType);
+
+  llvm_unreachable("unexpected kind");
 }
 
 /// Peel one layer of an aggregate type into its components.  Type may be
 /// complex, but empty, in which case fields is empty, but the return is true.
-static bool peelType(Type type, SmallVectorImpl<FlatBundleFieldEntry> &fields,
-                     bool allowedToPreserveAggregate = false) {
+static bool peelType(
+    Type type, SmallVectorImpl<FlatBundleFieldEntry> &fields,
+    bool flag = false,
+    AggregatePreservationKind kind = AggregatePreservationKind::PreserveNone) {
   // If the aggregate preservation is enabled and the type is preservable,
   // then just return.
-  if (allowedToPreserveAggregate && isPreservableAggregateType(type))
+  if (isPreservableAggregateType(type, kind))
     return false;
 
   return TypeSwitch<Type, bool>(type)
@@ -296,7 +334,7 @@ struct AttrCache {
 // not.
 struct TypeLoweringVisitor : public FIRRTLVisitor<TypeLoweringVisitor, bool> {
 
-  TypeLoweringVisitor(MLIRContext *context, bool preserveAggregate,
+  TypeLoweringVisitor(MLIRContext *context, AggregatePreservationKind preserveAggregate,
                       bool preservePublicTypes, SymbolTable &symTbl,
                       const AttrCache &cache)
       : context(context), preserveAggregate(preserveAggregate),
@@ -369,7 +407,7 @@ private:
 
   /// Not to lower passive aggregate types as much as possible if this flag is
   /// enabled.
-  bool preserveAggregate;
+  AggregatePreservationKind preserveAggregate;
 
   /// Exteranal modules and toplevel modules should have lowered types if this
   /// flag is enabled.
@@ -1273,7 +1311,8 @@ bool TypeLoweringVisitor::visitExpr(MultibitMuxOp op) {
 
 namespace {
 struct LowerTypesPass : public LowerFIRRTLTypesBase<LowerTypesPass> {
-  LowerTypesPass(bool preserveAggregateFlag, bool preservePublicTypesFlag) {
+  LowerTypesPass(circt::firrtl::AggregatePreservationKind preserveAggregateFlag,
+                 bool preservePublicTypesFlag) {
     preserveAggregate = preserveAggregateFlag;
     preservePublicTypes = preservePublicTypesFlag;
   }
@@ -1460,9 +1499,9 @@ void LowerTypesPass::runOnOperation() {
 }
 
 /// This is the pass constructor.
-std::unique_ptr<mlir::Pass>
-circt::firrtl::createLowerFIRRTLTypesPass(bool preserveAggregate,
-                                          bool preservePublicTypes) {
+std::unique_ptr<mlir::Pass> circt::firrtl::createLowerFIRRTLTypesPass(
+    circt::firrtl::AggregatePreservationKind preserveAggregate,
+    bool preservePublicTypes) {
 
   return std::make_unique<LowerTypesPass>(preserveAggregate,
                                           preservePublicTypes);
