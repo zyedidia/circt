@@ -24,5 +24,6 @@
 // DIALECT-NEXT: msft
 // DIALECT-NEXT: scf
 // DIALECT-NEXT: seq
+// DIALECT-NEXT: ssp
 // DIALECT-NEXT: staticlogic
 // DIALECT-NEXT: sv
