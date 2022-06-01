@@ -2393,15 +2393,6 @@ LogicalResult FIRRTLLowering::visitExpr(SubfieldOp op) {
 // Declarations
 //===----------------------------------------------------------------------===//
 
-static bool isOpDead(Operation *op) {
-  return op->use_empty() || llvm::all_of(op->getUses(), [](OpOperand &use){
-      auto connect = dyn_cast<ConnectOp>(use.getOwner());
-      if (!connect)
-	return false;
-      return use.get() == connect.dest();
-    });
-}
-
 LogicalResult FIRRTLLowering::visitDecl(WireOp op) {
   auto resultType = lowerType(op.result().getType());
   if (!resultType)
@@ -2420,11 +2411,6 @@ LogicalResult FIRRTLLowering::visitDecl(WireOp op) {
     // Prepend the name of the module to make the symbol name unique in the
     // symbol table, it is already unique in the module. Checking if the name
     // is unique in the SymbolTable is non-trivial.
-    symName = builder.getStringAttr(moduleNamespace.newName(
-        Twine("__") + moduleName + Twine("__") + name.getValue()));
-  }
-  if (!symName && !isUselessName(name) && !isOpDead(op)) {
-    auto moduleName = cast<hw::HWModuleOp>(op->getParentOp()).getName();
     symName = builder.getStringAttr(moduleNamespace.newName(
         Twine("__") + moduleName + Twine("__") + name.getValue()));
   }
@@ -2471,11 +2457,6 @@ LogicalResult FIRRTLLowering::visitDecl(NodeOp op) {
           op, "firrtl.transforms.DontTouchAnnotation") &&
       !symName) {
     // name may be empty
-    auto moduleName = cast<hw::HWModuleOp>(op->getParentOp()).getName();
-    symName = builder.getStringAttr(Twine("__") + moduleName + Twine("__") +
-                                    name.getValue());
-  }
-  if (!symName && !isUselessName(name) && !isOpDead(op)) {
     auto moduleName = cast<hw::HWModuleOp>(op->getParentOp()).getName();
     symName = builder.getStringAttr(Twine("__") + moduleName + Twine("__") +
                                     name.getValue());

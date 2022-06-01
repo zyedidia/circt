@@ -1211,7 +1211,13 @@ LogicalResult WireOp::canonicalize(WireOp wire, PatternRewriter &rewriter) {
     // use-before-def checking to do, so we only handle that for now.
     return failure();
 
-  // Ok, we can do this.  Replace all the reads with the connected value.
+  // Ok, we can do this.
+
+  // Mark the connected value's expression with a name hint from the wire's name.
+  if (auto *connectedOp = connected.getDefiningOp())
+    connectedOp->setAttr("sv.namehint", wire.nameAttr());
+
+  // Replace all the reads with the connected value.
   for (auto read : reads)
     rewriter.replaceOp(read, connected);
 
