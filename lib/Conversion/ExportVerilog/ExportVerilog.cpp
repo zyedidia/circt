@@ -2280,7 +2280,7 @@ SubExprInfo ExprEmitter::visitUnhandledExpr(Operation *op) {
 // NameCollector
 //===----------------------------------------------------------------------===//
 
-static std::pair<ConstantOp, AssignOp> isSingleConstantAssign(Operation *op) {
+std::pair<ConstantOp, AssignOp> circt::ExportVerilog::isSingleConstantAssign(Operation *op) {
   auto wire = dyn_cast<WireOp>(op);
   if (!wire)
     return {};
@@ -3678,14 +3678,6 @@ void StmtEmitter::collectNamesEmitDecls(Block &block) {
     opsForLocation.clear();
     opsForLocation.insert(op);
 
-    // Check if the declaration is assigned a single constant.
-    auto [constOp, assignOp] = isSingleConstantAssign(op);
-
-    // If the declaration is "tied-off" by being assigned constant 0, elide it.
-    // Do this by commenting it out to preserve the name.
-    if (constOp && constOp.value().isZero())
-      indent() << "// ";
-
     // Emit the leading word, like 'wire' or 'reg'.
     auto type = record.value.getType();
     auto word = getVerilogDeclWord(op, state.options);
@@ -3733,6 +3725,7 @@ void StmtEmitter::collectNamesEmitDecls(Block &block) {
       emitter.expressionsEmittedIntoDecl.insert(op);
     }
 
+    auto [constOp, assignOp] = isSingleConstantAssign(op);
     if (constOp) {
       os << " = ";
       emitExpression(constOp, opsForLocation, ForceEmitMultiUse);

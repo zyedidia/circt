@@ -63,6 +63,8 @@ private:
   DenseMap<std::pair<Operation *, Attribute>, StringAttr> renamedParams;
 };
 
+std::pair<hw::ConstantOp, sv::AssignOp> isSingleConstantAssign(Operation *op);
+
 //===----------------------------------------------------------------------===//
 // NameCollisionResolver
 //===----------------------------------------------------------------------===//

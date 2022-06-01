@@ -453,6 +453,16 @@ void ExportVerilog::prepareHWModule(Block &block,
        opIterator != e;) {
     auto &op = *opIterator++;
 
+    auto [constOp, assignOp] = isSingleConstantAssign(&op);
+    if (constOp && constOp.value().isZero()){
+      assignOp->erase();
+      if (constOp->use_empty())
+	constOp->erase();
+      op.erase();
+      continue;
+    }
+
+
     // Name legalization should have happened in a different pass for these sv
     // elements and we don't want to change their name through re-legalization
     // (e.g. letting a temporary take the name of an unvisited wire). Adding
