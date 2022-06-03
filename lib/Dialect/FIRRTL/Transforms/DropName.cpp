@@ -21,7 +21,7 @@ using namespace firrtl;
 
 static bool isDeadOp(Operation *op,
                      llvm::SmallDenseSet<Operation *> &deadOperations) {
-  for (auto user : op->getUsers()) {
+  for (auto *user : op->getUsers()) {
     if (auto node = dyn_cast<NodeOp>(user))
       return deadOperations.count(node);
 
@@ -31,7 +31,7 @@ static bool isDeadOp(Operation *op,
       return false;
     if (connect.src().getDefiningOp() != op)
       continue;
-    auto destOp = connect.dest().getDefiningOp();
+    auto *destOp = connect.dest().getDefiningOp();
     if (!destOp)
       return false;
     // Check the connect is self-connection. If not, check whether `dest` is
