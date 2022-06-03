@@ -459,11 +459,6 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
   pm.nest<firrtl::CircuitOp>().addPass(firrtl::createLowerFIRRTLAnnotationsPass(
       disableAnnotationsUnknown, disableAnnotationsClassless));
 
-  // TODO: Move this to the O1 pipeline.
-  if (dropName)
-    pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>().addPass(
-        firrtl::createDropNamePass());
-
   if (!disableOptimization)
     pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>().addPass(
         createCSEPass());
@@ -569,6 +564,11 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
   if (!disableOptimization) {
     pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>().addPass(
         createSimpleCanonicalizerPass());
+    // TODO: Move this to the O1 pipeline.
+    if (dropName)
+      pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>().addPass(
+          firrtl::createDropNamePass());
+
     if (removeUnusedPorts)
       pm.nest<firrtl::CircuitOp>().addPass(
           firrtl::createRemoveUnusedPortsPass());
