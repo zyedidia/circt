@@ -2500,13 +2500,6 @@ void FIRRTLLowering::initializeRegister(
   // definitions.  This is at the top of the "`ifndef SYNTHESIS" block.
   mlir::OpBuilder::InsertPoint regInsertionPoint;
 
-  auto regDef = cast<sv::RegOp>(reg.getDefiningOp());
-  if (!regDef->hasAttrOfType<StringAttr>("inner_sym"))
-    regDef->setAttr("inner_sym", builder.getStringAttr(moduleNamespace.newName(
-                                     Twine("__") + regDef.name() + "__")));
-  auto regDefSym =
-      hw::InnerRefAttr::get(theModule.getNameAttr(), regDef.inner_symAttr());
-
   // Construct and return a new reference to `RANDOM.  It is always a 32-bit
   // unsigned expression.  Calls to $random have side effects, so we use
   // VerbatimExprSEOp.
@@ -2568,15 +2561,15 @@ void FIRRTLLowering::initializeRegister(
     SmallVector<SymbolAndRange> values;
     getRandomValues(intType, values);
 
-    SmallString<32> rhs(("{{0}}" + accessor + " = ").str());
-    unsigned i = 1;
-    SmallVector<Attribute, 4> symbols({regDefSym});
+    SmallString<32> rhs;
+    unsigned i = 0;
+    SmallVector<Attribute, 4> symbols;
     if (values.size() > 1)
       rhs.append("{");
     for (auto [value, range] : llvm::reverse(values)) {
       symbols.push_back(value);
       auto [high, low] = range;
-      if (i > 1)
+      if (i > 0)
         rhs.append(", ");
       rhs.append(("{{" + Twine(i++) + "}}").str());
 
@@ -2598,8 +2591,10 @@ void FIRRTLLowering::initializeRegister(
       rhs.append("}");
     rhs.append(";");
 
-    builder.create<sv::VerbatimOp>(rhs, ValueRange{},
-                                   builder.getArrayAttr(symbols));
+    auto val = builder.create<sv::VerbatimExprSEOp>(
+        reg.getType().cast<hw::InOutType>().getElementType(), rhs, ValueRange{},
+        builder.getArrayAttr(symbols));
+    builder.create<sv::BPAssignOp>(reg, val);
   };
 
   // Randomly initialize everything in the register. If the register
