@@ -22,8 +22,8 @@ using namespace firrtl;
 static bool isDeadOp(Operation *op,
                      llvm::SmallDenseSet<Operation *> &deadOperations) {
   for (auto *user : op->getUsers()) {
-    if (auto node = dyn_cast<NodeOp>(user))
-      return deadOperations.count(node);
+    if (deadOperations.count(user))
+      continue;
 
     auto connect = dyn_cast<FConnectLike>(user);
     // If the user is neither node nor connect, we consider the op to be alive.
@@ -45,12 +45,17 @@ static bool isDeadOp(Operation *op,
 
 namespace {
 struct DropNamePass : public DropNameBase<DropNamePass> {
+  DropNamePass(bool dropOnlyDeadNameFlag) {
+    dropOnlyDeadNames = dropOnlyDeadNameFlag;
+  }
   void runOnOperation() override {
-    // FIXME: Currently we are dropping names of dead operations alone.
-    //        Once we improve namehint support at HW/SV/Comb dialect,
-    //        we have to drop names regardless of their liveness by replacing
-    //        the entire logic with following code:
-    //        module.walk([](FNamableOp op) { op.dropName(); });
+    // If `dropOnlyDeadNames` is false, we drop all names regardless of their
+    // liveness.
+    if (!dropOnlyDeadNames) {
+      getOperation().walk([](FNamableOp op) { op.dropName(); });
+      return;
+    }
+
     llvm::SmallDenseSet<Operation *> deadOperations;
     auto *block = getOperation().getBody();
     for (auto &op : llvm::reverse(*block)) {
@@ -69,6 +74,7 @@ struct DropNamePass : public DropNameBase<DropNamePass> {
 
 } // end anonymous namespace
 
-std::unique_ptr<mlir::Pass> circt::firrtl::createDropNamePass() {
-  return std::make_unique<DropNamePass>();
+std::unique_ptr<mlir::Pass>
+circt::firrtl::createDropNamePass(bool dropOnlyDeadNames) {
+  return std::make_unique<DropNamePass>(dropOnlyDeadNames);
 }

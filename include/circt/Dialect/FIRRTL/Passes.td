@@ -481,6 +481,10 @@ def DropName : Pass<"firrtl-drop-name", "firrtl::FModuleOp"> {
     ```
   }];
   let constructor = "circt::firrtl::createDropNamePass()";
+  let options = [
+    Option<"dropOnlyDeadNames", "drop-only-dead-names", "bool", "true",
+      "Drop only names of dead operations.">
+  ];
 }
 
 #endif // CIRCT_DIALECT_FIRRTL_PASSES_TD
