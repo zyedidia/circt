@@ -338,3 +338,28 @@ def InnerSymbol : OpInterface<"InnerSymbolOpInterface"> {
 }
 
 def InnerSymbolTable : NativeOpTrait<"InnerSymbolTable">;
+
+def FNamableOp : OpInterface<"FNamableOp"> {
+  let cppNamespace = "circt::firrtl";
+  let description = "Provide common connection information.";
+
+  let methods = [
+    InterfaceMethod<"Return a destination of connection.",
+    "bool", "hasDroppableName", (ins), [{}], /*defaultImplementation=*/[{
+      return this->getOperation()->getAttr("nameKind").template
+             cast<NameKindEnumAttr>().getValue() ==
+             NameKindEnum::DroppableName;
+    }]>,
+    InterfaceMethod<"Make the name droppable.",
+    "void", "dropName", (ins), [{}], /*defaultImplementation=*/[{
+      this->getOperation()->setAttr("nameKind",
+        NameKindEnumAttr::get(this->getOperation()->getContext(),
+                              NameKindEnum::DroppableName));
+    }]>,
+    InterfaceMethod<"Return the name.",
+    "mlir::StringAttr", "getName", (ins), [{}], /*defaultImplementation=*/[{
+      return this->getOperation()->getAttr("name").template
+             cast<mlir::StringAttr>();
+    }]>
+  ];
+}

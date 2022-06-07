@@ -62,15 +62,16 @@ bool circt::firrtl::isUselessName(StringRef name) {
   return name.startswith("_");
 }
 
-/// Return true if this is a useless temporary name produced by FIRRTL.  We
-/// drop these as they don't convey semantic meaning.
-bool circt::firrtl::isUselessName(Operation *op) {
-  if (auto wire = dyn_cast<WireOp>(op))
-    return isUselessName(wire.name());
-  if (auto node = dyn_cast<NodeOp>(op))
-    return isUselessName(node.name());
-  if (auto reg = dyn_cast<RegOp>(op))
-    return isUselessName(reg.name());
+NameKindEnum circt::firrtl::inferNameKind(StringRef name) {
+  return circt::firrtl::isUselessName(name) ? NameKindEnum::DroppableName
+                                            : NameKindEnum::InterestingName;
+}
+
+/// Return true if the name is droppable. Note that this is different from
+/// `isUselessName` because non-useless names may be also droppable.
+bool circt::firrtl::hasDroppableName(Operation *op) {
+  if (auto namableOp = dyn_cast<firrtl::FNamableOp>(op))
+    return namableOp.hasDroppableName();
   return false;
 }
 
@@ -1453,7 +1454,7 @@ static LogicalResult canonicalizeSingleSetConnect(StrictConnectOp op,
     }
   }
 
-  if (isUselessName(connectedDecl)) {
+  if (hasDroppableName(connectedDecl)) {
     // Replace all things *using* the decl with the constant/port, and
     // remove the declaration.
     rewriter.replaceOp(connectedDecl, replacement);
@@ -1608,7 +1609,7 @@ struct FoldNodeName : public mlir::RewritePattern {
                                 PatternRewriter &rewriter) const override {
     auto node = cast<NodeOp>(op);
     auto name = node.nameAttr();
-    if (!isUselessName(name.getValue()) || node.inner_sym() ||
+    if (!node.hasDroppableName() || node.inner_sym() ||
         !node.annotations().empty())
       return failure();
     auto *expr = node.input().getDefiningOp();
