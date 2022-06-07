@@ -329,6 +329,13 @@ static cl::opt<bool> stripDebugInfo(
     cl::desc("Disable source locator information in output Verilog"),
     cl::init(false), cl::cat(mainCategory));
 
+static cl::opt<bool> dropNames("drop-names", cl::desc("drop names"),
+                               cl::init(false), cl::cat(mainCategory));
+
+static cl::opt<bool> dropOnlyDeadNames("drop-only-dead-names",
+                                       cl::desc("drop only dead names"),
+                                       cl::init(true), cl::cat(mainCategory));
+
 /// Create a simple canonicalizer pass.
 static std::unique_ptr<Pass> createSimpleCanonicalizerPass() {
   mlir::GreedyRewriteConfig config;
@@ -561,6 +568,11 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
   if (!disableOptimization) {
     pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>().addPass(
         createSimpleCanonicalizerPass());
+    // TODO: Move this to the O1 pipeline.
+    if (dropNames)
+      pm.nest<firrtl::CircuitOp>().nest<firrtl::FModuleOp>().addPass(
+          firrtl::createDropNamePass(dropOnlyDeadNames));
+
     if (removeUnusedPorts)
       pm.nest<firrtl::CircuitOp>().addPass(
           firrtl::createRemoveUnusedPortsPass());

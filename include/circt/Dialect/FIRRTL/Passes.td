@@ -466,4 +466,25 @@ def MemToRegOfVec : Pass<"firrtl-mem-to-reg-of-vec", "firrtl::CircuitOp"> {
   let constructor = "circt::firrtl::createMemToRegOfVecPass()";
 }
 
+def DropName : Pass<"firrtl-drop-name", "firrtl::FModuleOp"> {
+  let summary = "Drop interesting names";
+  let description = [{
+    This pass changes names of namable ops to discardable so that
+    we can disable name preservations. For example,
+    before:
+    ```
+    %a = firrtl.node interesting_name %input
+    ```
+    after:
+    ```
+    %a = firrtl.node droppable_name %input
+    ```
+  }];
+  let constructor = "circt::firrtl::createDropNamePass()";
+  let options = [
+    Option<"dropOnlyDeadNames", "drop-only-dead-names", "bool", "true",
+      "Drop only names of dead operations.">
+  ];
+}
+
 #endif // CIRCT_DIALECT_FIRRTL_PASSES_TD

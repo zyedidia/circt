@@ -96,6 +96,8 @@ createMergeConnectionsPass(bool enableAggressiveMerging = false);
 
 std::unique_ptr<mlir::Pass> createInjectDUTHierarchyPass();
 
+std::unique_ptr<mlir::Pass> createDropNamePass(bool dropOnlyDeadNames = true);
+
 std::unique_ptr<mlir::Pass> createExtractInstancesPass();
 
 /// Generate the code for registering passes.
