@@ -2591,7 +2591,7 @@ void FIRRTLLowering::initializeRegister(
       rhs.append("}");
     rhs.append(";");
 
-    auto val = builder.create<sv::VerbatimExprSEOp>(
+    auto val = builder.create<sv::VerbatimExprOp>(
         reg.getType().cast<hw::InOutType>().getElementType(), rhs, ValueRange{},
         builder.getArrayAttr(symbols));
     builder.create<sv::BPAssignOp>(reg, val);
