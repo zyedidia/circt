@@ -330,7 +330,7 @@ static cl::opt<bool> stripDebugInfo(
     cl::init(false), cl::cat(mainCategory));
 
 static cl::opt<bool> dropNames("drop-names", cl::desc("drop names"),
-                               cl::init(false), cl::cat(mainCategory));
+                               cl::init(true), cl::cat(mainCategory));
 
 static cl::opt<bool> dropOnlyDeadNames("drop-only-dead-names",
                                        cl::desc("drop only dead names"),
