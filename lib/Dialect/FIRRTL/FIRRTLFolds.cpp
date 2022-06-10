@@ -1525,6 +1525,33 @@ static LogicalResult canonicalizeIntTypeConnect(ConnectOp op,
   return failure();
 }
 
+template <class OpTy>
+struct EraseWriteOnly : public mlir::RewritePattern {
+  EraseWriteOnly(MLIRContext *context)
+      : RewritePattern(OpTy::getOperationName(), 0, context) {}
+  LogicalResult matchAndRewrite(Operation *op,
+                                PatternRewriter &rewriter) const override {
+    auto annotations = cast<OpTy>(op).annotations();
+    if (hasDontTouch(op) || !cast<FNamableOp>(op).hasDroppableName() ||
+        (annotations && !annotations.empty()))
+      return failure();
+
+    for (auto user : op->getUsers()) {
+      auto connect = dyn_cast<FConnectLike>(user);
+      if (!connect)
+        return failure();
+      if (connect.dest().getDefiningOp() != op)
+        return failure();
+    }
+
+    for (auto user : llvm::make_early_inc_range(op->getUsers()))
+      rewriter.eraseOp(user);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 // Forward simple values through wire's and reg's.
 static LogicalResult
 canonicalizeMatchingTypeConnect(ConnectOp op, PatternRewriter &rewriter) {
@@ -1652,7 +1679,7 @@ void NodeOp::getCanonicalizationPatterns(RewritePatternSet &results,
 
 void WireOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                          MLIRContext *context) {
-  results.insert<patterns::DropNameWire>(context);
+  results.insert<patterns::DropNameWire, EraseWriteOnly<WireOp>>(context);
 }
 
 // A register with constant reset and all connection to either itself or the
@@ -1710,10 +1737,10 @@ struct FoldResetMux : public mlir::RewritePattern {
 
 void RegResetOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                              MLIRContext *context) {
-  results.insert<patterns::RegResetWithZeroReset,
-                 patterns::RegResetWithInvalidReset,
-                 patterns::RegResetWithInvalidResetValue,
-                 patterns::DropNameRegReset, FoldResetMux>(context);
+  results.insert<
+      patterns::RegResetWithZeroReset, patterns::RegResetWithInvalidReset,
+      patterns::RegResetWithInvalidResetValue, patterns::DropNameRegReset,
+      FoldResetMux, EraseWriteOnly<RegResetOp>>(context);
 }
 
 LogicalResult MemOp::canonicalize(MemOp op, PatternRewriter &rewriter) {
@@ -1819,6 +1846,10 @@ LogicalResult RegOp::canonicalize(RegOp op, PatternRewriter &rewriter) {
 
   patterns::DropNameReg dnr(op.getContext());
   if (succeeded(dnr.matchAndRewrite(op, rewriter)))
+    return success();
+
+  EraseWriteOnly<RegOp> eraseWriteOnly(op.getContext());
+  if (succeeded(eraseWriteOnly.matchAndRewrite(op, rewriter)))
     return success();
 
   return failure();
