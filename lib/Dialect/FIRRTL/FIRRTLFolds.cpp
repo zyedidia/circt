@@ -1544,7 +1544,8 @@ struct EraseWriteOnly : public mlir::RewritePattern {
         return failure();
     }
 
-    for (auto user : llvm::make_early_inc_range(op->getUsers()))
+    SmallPtrSet<Operation *, 4> users(op->user_begin(), op->user_end());
+    for (auto user : users)
       rewriter.eraseOp(user);
 
     rewriter.eraseOp(op);
