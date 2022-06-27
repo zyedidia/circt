@@ -1206,6 +1206,10 @@ LogicalResult WireOp::canonicalize(WireOp wire, PatternRewriter &rewriter) {
     // AssignOp and ReadInOutOp), then can't optimize.
     if (!assign || write)
       return failure();
+
+    if (assign.svAttributesAttr())
+      return failure();
+
     write = assign;
   }
 
