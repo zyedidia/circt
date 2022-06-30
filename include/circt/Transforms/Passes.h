@@ -25,6 +25,7 @@ namespace circt {
 
 std::unique_ptr<mlir::Pass> createFlattenMemRefPass();
 std::unique_ptr<mlir::Pass> createFlattenMemRefCallsPass();
+std::unique_ptr<mlir::Pass> createInsertMergeBlocksPass();
 
 //===----------------------------------------------------------------------===//
 // Registration
