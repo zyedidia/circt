@@ -1718,11 +1718,11 @@ void ArrayConcatOp::build(OpBuilder &b, OperationState &state,
 //===----------------------------------------------------------------------===//
 
 ParseResult EnumConstantOp::parse(OpAsmParser &parser, OperationState &result) {
-  EnumValueAttr value;
+  EnumFieldAttr value;
   if (parser.parseAttribute(value))
     return failure();
 
-  result.addAttribute("enumerator", value);
+  result.addAttribute("field", value);
   result.addTypes(value.getType().getValue());
 
   return success();
@@ -1730,12 +1730,12 @@ ParseResult EnumConstantOp::parse(OpAsmParser &parser, OperationState &result) {
 
 void EnumConstantOp::print(OpAsmPrinter &p) {
   p << " ";
-  p.printAttribute(enumerator());
+  p.printAttribute(field());
 }
 
 void EnumConstantOp::getAsmResultNames(
     function_ref<void(Value, StringRef)> setNameFn) {
-  setNameFn(getResult(), enumerator().getValue().str());
+  setNameFn(getResult(), field().getField().str());
 }
 
 //===----------------------------------------------------------------------===//

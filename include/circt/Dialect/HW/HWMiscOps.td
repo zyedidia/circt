@@ -85,7 +85,7 @@ def ParamValueOp : HWOp<"param.value",
 
 def EnumConstantOp : HWOp<"enum.constant", [NoSideEffect, ConstantLike,
          DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResultNames"]>]> {
-  let summary = "Produce a constant enumarion value.";
+  let summary = "Produce a constant enumeration value.";
   let description = [{
     The enum.constant operation produces an enumeration value of the specified
     enum value attribute.
@@ -94,11 +94,11 @@ def EnumConstantOp : HWOp<"enum.constant", [NoSideEffect, ConstantLike,
     ```
     }];
 
-  let arguments = (ins EnumValueAttr:$enumerator);
+  let arguments = (ins EnumFieldAttr:$field);
   let results = (outs EnumType:$result);
   let hasCustomAssemblyFormat = 1;
 
   let builders = [
-    OpBuilder<(ins "hw::EnumValueAttr":$enumerator)>,
+    OpBuilder<(ins "hw::EnumFieldAttr":$field)>,
   ];
 }
