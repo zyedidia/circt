@@ -33,9 +33,7 @@ public:
                        // Struct operations
                        StructCreateOp, StructExtractOp, StructInjectOp,
                        // Cast operation
-                       BitcastOp, ParamValueOp,
-                       // Enum operations
-                       EnumConstantOp>([&](auto expr) -> ResultType {
+                       BitcastOp, ParamValueOp>([&](auto expr) -> ResultType {
           return thisCast->visitTypeOp(expr, args...);
         })
         .Default([&](auto expr) -> ResultType {
@@ -71,7 +69,6 @@ public:
   HANDLE(ArrayGetOp, Unhandled);
   HANDLE(ArrayCreateOp, Unhandled);
   HANDLE(ArrayConcatOp, Unhandled);
-  HANDLE(EnumConstantOp, Unhandled);
 #undef HANDLE
 };
 
