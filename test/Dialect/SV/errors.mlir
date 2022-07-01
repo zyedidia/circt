@@ -222,7 +222,7 @@ hw.module @ZeroWidthConstantZ() {
 // -----
 
 hw.module @CaseEnum() {
-  %0 = hw.enum.constant #hw.enum.value<A, !hw.enum<A, B, C>>
+  %0 = hw.enum.constant #hw.enum.field<A, !hw.enum<A, B, C>>
   // expected-error @+1 {{custom op 'sv.case' case value 'D' is not a member of enum type '!hw.enum<A, B, C>'}}
   sv.case %0 : !hw.enum<A, B, C>
     case D: {

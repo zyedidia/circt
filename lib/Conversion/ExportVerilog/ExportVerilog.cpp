@@ -2286,7 +2286,7 @@ SubExprInfo ExprEmitter::visitTypeOp(StructInjectOp op) {
 }
 
 SubExprInfo ExprEmitter::visitTypeOp(EnumConstantOp op) {
-  os << op.enumerator().getValue().getValue();
+  os << op.field().getField().getValue();
   return {Selection, IsUnsigned};
 }
 
@@ -3363,7 +3363,7 @@ LogicalResult StmtEmitter::visitSV(CaseOp op) {
             os << getLetter(bitPattern->getBit(e - bit - 1));
         })
         .Case<CaseEnumPattern>(
-            [&](auto enumPattern) { indent() << enumPattern->getEnumValue(); })
+            [&](auto enumPattern) { indent() << enumPattern->getFieldValue(); })
         .Case<CaseDefaultPattern>([&](auto) { indent() << "default"; })
         .Default([&](auto) { llvm_unreachable("unhandled case pattern"); });
 

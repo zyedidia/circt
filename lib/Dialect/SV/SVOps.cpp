@@ -661,24 +661,29 @@ auto CaseOp::getCases() -> SmallVector<CaseInfo, 4> {
          "case pattern / region count mismatch");
   size_t nextRegion = 0;
   for (auto elt : casePatterns()) {
-    if (!elt)
-      result.push_back({std::make_unique<CaseDefaultPattern>(),
-                        &getRegion(nextRegion++).front()});
-    else if (auto enumValue = elt.dyn_cast<hw::EnumValueAttr>(); enumValue) {
-      result.push_back({std::make_unique<CaseEnumPattern>(enumValue),
-                        &getRegion(nextRegion++).front()});
-    } else {
-      result.push_back(
-          {std::make_unique<CaseBitPattern>(elt.cast<IntegerAttr>()),
-           &getRegion(nextRegion++).front()});
-    }
+    llvm::TypeSwitch<Attribute>(elt)
+        .Case<hw::EnumFieldAttr>([&](auto enumAttr) {
+          result.push_back({std::make_unique<CaseEnumPattern>(enumAttr),
+                            &getRegion(nextRegion++).front()});
+        })
+        .Case<IntegerAttr>([&](auto intAttr) {
+          result.push_back({std::make_unique<CaseBitPattern>(intAttr),
+                            &getRegion(nextRegion++).front()});
+        })
+        .Case<CaseDefaultPattern::AttrType>([&](auto) {
+          result.push_back({std::make_unique<CaseDefaultPattern>(getContext()),
+                            &getRegion(nextRegion++).front()});
+        })
+        .Default([](auto) {
+          llvm_unreachable("invalid case pattern attribute type");
+        });
   }
 
   return result;
 }
 
-StringRef CaseEnumPattern::getEnumValue() const {
-  return enumAttr.cast<hw::EnumValueAttr>().getValue();
+StringRef CaseEnumPattern::getFieldValue() const {
+  return enumAttr.cast<hw::EnumFieldAttr>().getField();
 }
 
 /// Parse case op.
@@ -732,7 +737,7 @@ ParseResult CaseOp::parse(OpAsmParser &parser, OperationState &result) {
   SmallVector<CasePatternBit, 16> caseBits;
   while (1) {
     if (succeeded(parser.parseOptionalKeyword("default"))) {
-      casePatterns.push_back(CaseDefaultPattern().attr());
+      casePatterns.push_back(CaseDefaultPattern(parser.getContext()).attr());
     } else if (failed(parser.parseOptionalKeyword("case"))) {
       // Not default or case, must be the end of the cases.
       break;
@@ -748,10 +753,11 @@ ParseResult CaseOp::parse(OpAsmParser &parser, OperationState &result) {
                << "case value '" + caseVal + "' is not a member of enum type "
                << enumType;
       casePatterns.push_back(
-          hw::EnumValueAttr::get(parser.getEncodedSourceLoc(loc),
+          hw::EnumFieldAttr::get(parser.getEncodedSourceLoc(loc),
                                  builder.getStringAttr(caseVal), enumType));
     } else {
-      // Parse the pattern.  It always starts with b, so it is an MLIR keyword.
+      // Parse the pattern.  It always starts with b, so it is an MLIR
+      // keyword.
       StringRef caseVal;
       loc = parser.getCurrentLocation();
       if (parser.parseKeyword(&caseVal))
@@ -835,7 +841,7 @@ void CaseOp::print(OpAsmPrinter &p) {
             p << getLetter(bitPattern->getBit(e - bit - 1));
         })
         .Case<CaseEnumPattern>([&](auto enumPattern) {
-          p << "case " << enumPattern->getEnumValue();
+          p << "case " << enumPattern->getFieldValue();
         })
         .Case<CaseDefaultPattern>([&](auto) { p << "default"; })
         .Default([&](auto) { llvm_unreachable("unhandled case pattern"); });
@@ -958,17 +964,17 @@ void OrderedOutputOp::build(OpBuilder &builder, OperationState &result,
 
 LogicalResult BPAssignOp::verify() {
   if (isa<sv::WireOp>(dest().getDefiningOp()))
-    return emitOpError(
-        "Verilog disallows procedural assignment to a net type (did you intend "
-        "to use a variable type, e.g., sv.reg?)");
+    return emitOpError("Verilog disallows procedural assignment to a net "
+                       "type (did you intend "
+                       "to use a variable type, e.g., sv.reg?)");
   return success();
 }
 
 LogicalResult PAssignOp::verify() {
   if (isa<sv::WireOp>(dest().getDefiningOp()))
-    return emitOpError(
-        "Verilog disallows procedural assignment to a net type (did you intend "
-        "to use a variable type, e.g., sv.reg?)");
+    return emitOpError("Verilog disallows procedural assignment to a net "
+                       "type (did you intend "
+                       "to use a variable type, e.g., sv.reg?)");
   return success();
 }
 
@@ -1240,8 +1246,8 @@ LogicalResult WireOp::canonicalize(WireOp wire, PatternRewriter &rewriter) {
 
     // Otherwise must be an assign, and we must not have seen a write yet.
     auto assign = dyn_cast<sv::AssignOp>(user);
-    // Either the wire has more than one write or another kind of Op (other than
-    // AssignOp and ReadInOutOp), then can't optimize.
+    // Either the wire has more than one write or another kind of Op (other
+    // than AssignOp and ReadInOutOp), then can't optimize.
     if (!assign || write)
       return failure();
     write = assign;
@@ -1425,8 +1431,8 @@ LogicalResult AliasOp::verify() {
 //===----------------------------------------------------------------------===//
 
 // reg s <= cond ? val : s simplification.
-// Don't assign a register's value to itself, conditionally assign the new value
-// instead.
+// Don't assign a register's value to itself, conditionally assign the new
+// value instead.
 LogicalResult PAssignOp::canonicalize(PAssignOp op, PatternRewriter &rewriter) {
   auto mux = op.src().getDefiningOp<comb::MuxOp>();
   if (!mux)
@@ -1684,8 +1690,8 @@ void AssumeConcurrentOp::getCanonicalizationPatterns(RewritePatternSet &results,
 
 void CoverConcurrentOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                                     MLIRContext *context) {
-  results.add(
-      canonicalizeConcurrentVerifOp<CoverConcurrentOp, /* EraseIfZero */ true>);
+  results.add(canonicalizeConcurrentVerifOp<CoverConcurrentOp,
+                                            /* EraseIfZero */ true>);
 }
 
 //===----------------------------------------------------------------------===//

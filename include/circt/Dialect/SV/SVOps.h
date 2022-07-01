@@ -59,14 +59,25 @@ private:
   const CasePatternKind kind;
 };
 
-struct CaseDefaultPattern : public CasePattern {
-  CaseDefaultPattern() : CasePattern(CasePatternKind::CPK_default) {}
+class CaseDefaultPattern : public CasePattern {
+public:
+  using AttrType = mlir::UnitAttr;
+  CaseDefaultPattern(MLIRContext *ctx)
+      : CasePattern(CasePatternKind::CPK_default) {
+    unitAttr = AttrType::get(ctx);
+  }
 
-  Attribute attr() const override { return nullptr; }
+  Attribute attr() const override { return unitAttr; }
 
   static bool classof(const CasePattern *S) {
     return S->getKind() == CPK_default;
   }
+
+private:
+  // The default pattern is recognized by a UnitAttr. This is needed since we
+  // need to be able to determine the pattern type of a case based on an
+  // attribute attached to the sv.case op.
+  UnitAttr unitAttr;
 };
 
 class CaseBitPattern : public CasePattern {
@@ -105,18 +116,18 @@ private:
 class CaseEnumPattern : public CasePattern {
 public:
   // Get a CasePattern for the specified enum value attribute.
-  CaseEnumPattern(hw::EnumValueAttr attr)
+  CaseEnumPattern(hw::EnumFieldAttr attr)
       : CasePattern(CPK_enum), enumAttr(attr) {}
 
   // Return the named value of this enumeration.
-  StringRef getEnumValue() const;
+  StringRef getFieldValue() const;
 
   Attribute attr() const override { return enumAttr; }
 
   static bool classof(const CasePattern *S) { return S->getKind() == CPK_enum; }
 
 private:
-  hw::EnumValueAttr enumAttr;
+  hw::EnumFieldAttr enumAttr;
 };
 
 // This provides information about one case.

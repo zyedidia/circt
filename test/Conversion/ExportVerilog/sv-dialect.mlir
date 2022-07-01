@@ -977,9 +977,9 @@ hw.module @AnFSM(%clock : i1) {
   %reg = sv.reg : !hw.inout<!hw.enum<A, B, C>>
   %reg_read = sv.read_inout %reg : !hw.inout<!hw.enum<A, B, C>>
   
-  %A = hw.enum.constant #hw.enum.value<A, !hw.enum<A, B, C>>
-  %B = hw.enum.constant #hw.enum.value<B, !hw.enum<A, B, C>>
-  %C = hw.enum.constant #hw.enum.value<C, !hw.enum<A, B, C>>
+  %A = hw.enum.constant #hw.enum.field<A, !hw.enum<A, B, C>>
+  %B = hw.enum.constant #hw.enum.field<B, !hw.enum<A, B, C>>
+  %C = hw.enum.constant #hw.enum.field<C, !hw.enum<A, B, C>>
 
   sv.always posedge %clock {
     sv.case case %reg_read : !hw.enum<A, B, C>

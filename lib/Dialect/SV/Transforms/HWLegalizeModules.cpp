@@ -102,7 +102,7 @@ Operation *HWLegalizeModulesPass::tryLoweringArrayGet(hw::ArrayGetOp getOp) {
         std::unique_ptr<sv::CasePattern> thePattern;
 
         if (isDefault)
-          thePattern = std::make_unique<sv::CaseDefaultPattern>();
+          thePattern = std::make_unique<sv::CaseDefaultPattern>(context);
         else
           thePattern = std::make_unique<sv::CaseBitPattern>(caseValue, context);
         ++caseValue;
