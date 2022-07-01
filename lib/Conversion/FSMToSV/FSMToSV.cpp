@@ -1,4 +1,4 @@
-//===- FSMToHW.cpp - Convert FSM to HW and SV Dialect ---------------------===//
+//===- FSMToSV.cpp - Convert FSM to HW and SV Dialect ---------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "circt/Conversion/FSMToHW.h"
+#include "circt/Conversion/FSMToSV.h"
 #include "../PassDetail.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/FSM/FSMOps.h"
@@ -66,13 +66,13 @@ public:
   }
 
   // Returns the type which encodes the state values.
-  virtual IntegerType getStateType() = 0;
+  virtual Type getStateType() = 0;
 
 protected:
   // Creates a wired constant value in the module for the given encoded state
   // and records the state value in the mappings. An inner symbol is
   // attached to the wire to avoid it being optimized away.
-  void setEncoding(StateOp state, APInt v) {
+  void setEncoding(StateOp state, Value v) {
     assert(stateToValue.find(state) == stateToValue.end() &&
            "state already encoded");
 
@@ -81,8 +81,7 @@ protected:
     auto stateEncodingWire =
         b.create<sv::WireOp>(loc, stateType, state.getNameAttr(),
                              /*inner_sym=*/state.getNameAttr());
-    b.create<sv::AssignOp>(loc, stateEncodingWire,
-                           b.create<hw::ConstantOp>(loc, v));
+    b.create<sv::AssignOp>(loc, stateEncodingWire, v);
     Value encodedValue = b.create<sv::ReadInOutOp>(loc, stateEncodingWire);
     stateToValue[state] = encodedValue;
     valueToState[encodedValue] = state;
@@ -98,21 +97,34 @@ protected:
   hw::HWModuleOp hwModule;
 };
 
-class BinaryStateEncoding : public StateEncoding {
+class EnumStateEncoding : public StateEncoding {
 public:
-  BinaryStateEncoding(OpBuilder &b, MachineOp machine, hw::HWModuleOp hwModule)
+  EnumStateEncoding(OpBuilder &b, MachineOp machine, hw::HWModuleOp hwModule)
       : StateEncoding(b, machine, hwModule) {
 
-    // Dead simple integer encoding.
-    auto stateType = getStateType();
-    for (auto stateIt : llvm::enumerate(machine.getBody().getOps<StateOp>()))
-      setEncoding(stateIt.value(),
-                  APInt(stateType.getWidth(), stateIt.index()));
+    llvm::SmallVector<Attribute> stateNames;
+
+    for (auto state : machine.getBody().getOps<StateOp>())
+      stateNames.push_back(b.getStringAttr(state.getName()));
+
+    // Create an enum type for the states.
+    stateType = hw::EnumType::get(b.getContext(), b.getArrayAttr(stateNames));
+
+    // And create enum values for the states
+    for (auto state : machine.getBody().getOps<StateOp>()) {
+      auto fieldAttr = hw::EnumFieldAttr::get(
+          machine.getLoc(), b.getStringAttr(state.getName()), stateType);
+      setEncoding(state, b.create<hw::EnumConstantOp>(
+                             machine.getLoc(), fieldAttr.getType().getValue(),
+                             fieldAttr));
+    }
   }
 
-  IntegerType getStateType() override {
-    return b.getIntegerType(llvm::Log2_64_Ceil(machine.getNumStates()));
-  }
+  Type getStateType() override { return stateType; }
+
+private:
+  // The enum type for the states.
+  hw::EnumType stateType;
 };
 
 class MachineOpConverter {
@@ -224,7 +236,7 @@ LogicalResult MachineOpConverter::dispatch() {
       hwModuleOp.front().getArgument(hwModuleOp.front().getNumArguments() - 1);
 
   // Build state register.
-  encoding = std::make_unique<BinaryStateEncoding>(b, machineOp, hwModuleOp);
+  encoding = std::make_unique<EnumStateEncoding>(b, machineOp, hwModuleOp);
   auto stateType = encoding->getStateType();
 
   BackedgeBuilder bb(b, loc);
@@ -354,7 +366,7 @@ MachineOpConverter::convertState(StateOp state) {
   return res;
 }
 
-struct FSMToHWPass : public ConvertFSMToHWBase<FSMToHWPass> {
+struct FSMToSVPass : public ConvertFSMToSVBase<FSMToSVPass> {
   void runOnOperation() override {
     auto module = getOperation();
     auto b = OpBuilder(module);
@@ -395,6 +407,6 @@ struct FSMToHWPass : public ConvertFSMToHWBase<FSMToHWPass> {
 };
 } // end anonymous namespace
 
-std::unique_ptr<mlir::Pass> circt::createConvertFSMToHWPass() {
-  return std::make_unique<FSMToHWPass>();
+std::unique_ptr<mlir::Pass> circt::createConvertFSMToSVPass() {
+  return std::make_unique<FSMToSVPass>();
 }

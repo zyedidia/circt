@@ -1,5 +1,5 @@
-add_circt_conversion_library(CIRCTFSMToHW
-    FSMToHW.cpp
+add_circt_conversion_library(CIRCTFSMToSV
+    FSMToSV.cpp
 
     DEPENDS
     CIRCTConversionPassIncGen

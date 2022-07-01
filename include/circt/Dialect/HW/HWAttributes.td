@@ -286,7 +286,7 @@ def EnumFieldAttr : AttrDef<HWDialect, "EnumField"> {
   let extraClassDeclaration = [{
     /// Builds a new EnumFieldAttr of the provided value.
     /// This will fail if the value is not a member of the provided enum type.
-    static Attribute get(::mlir::Location loc, ::mlir::StringAttr value, circt::hw::EnumType type);
+    static EnumFieldAttr get(::mlir::Location loc, ::mlir::StringAttr value, circt::hw::EnumType type);
   }];
 }
 

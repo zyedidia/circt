@@ -188,13 +188,13 @@ void EnumFieldAttr::print(AsmPrinter &p) const {
   p << ">";
 }
 
-Attribute EnumFieldAttr::get(Location loc, StringAttr value,
-                             hw::EnumType type) {
+EnumFieldAttr EnumFieldAttr::get(Location loc, StringAttr value,
+                                 hw::EnumType type) {
   // Check whether the provided value is a member of the enum type.
   if (!type.contains(value.getValue())) {
     emitError(loc) << "enum value '" << value.getValue()
                    << "' is not a member of enum type " << type;
-    return Attribute();
+    return nullptr;
   }
 
   return Base::get(value.getContext(), value, TypeAttr::get(type));

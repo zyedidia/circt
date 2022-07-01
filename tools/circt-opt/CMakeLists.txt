@@ -20,7 +20,7 @@ target_link_libraries(circt-opt
   CIRCTFIRRTLTransforms
   CIRCTFSM
   CIRCTFSMTransforms
-  CIRCTFSMToHW
+  CIRCTFSMToSV
   CIRCTHandshake
   CIRCTHandshakeToFIRRTL
   CIRCTHandshakeToHW
@@ -47,7 +47,6 @@ target_link_libraries(circt-opt
   CIRCTSVTransforms
   CIRCTTransforms
 
-  
   MLIRIR
   MLIRLLVMDialect
   MLIRMemRefDialect
@@ -57,4 +56,4 @@ target_link_libraries(circt-opt
   MLIRSupport
   MLIRTransforms
   MLIRSCFDialect
-  )
+)

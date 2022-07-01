@@ -97,8 +97,4 @@ def EnumConstantOp : HWOp<"enum.constant", [NoSideEffect, ConstantLike,
   let arguments = (ins EnumFieldAttr:$field);
   let results = (outs EnumType:$result);
   let hasCustomAssemblyFormat = 1;
-
-  let builders = [
-    OpBuilder<(ins "hw::EnumFieldAttr":$field)>,
-  ];
 }
