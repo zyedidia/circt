@@ -315,19 +315,19 @@ Type UnionType::getFieldType(mlir::StringRef fieldName) {
 //===----------------------------------------------------------------------===//
 
 Type EnumType::parse(AsmParser &p) {
-  llvm::SmallVector<Attribute> enumerators;
+  llvm::SmallVector<Attribute> fields;
 
   if (p.parseLess() || p.parseCommaSeparatedList([&]() {
         StringRef name;
         if (p.parseKeyword(&name))
           return failure();
-        enumerators.push_back(StringAttr::get(p.getContext(), name));
+        fields.push_back(StringAttr::get(p.getContext(), name));
         return success();
       }) ||
       p.parseGreater())
     return Type();
 
-  return get(p.getContext(), ArrayAttr::get(p.getContext(), enumerators));
+  return get(p.getContext(), ArrayAttr::get(p.getContext(), fields));
 }
 
 void EnumType::print(AsmPrinter &p) const {

@@ -169,26 +169,26 @@ FileListAttr FileListAttr::getFromFilename(MLIRContext *context,
 }
 
 //===----------------------------------------------------------------------===//
-// EnumValueAttr
+// EnumFieldAttr
 //===----------------------------------------------------------------------===//
 
-Attribute EnumValueAttr::parse(AsmParser &p, Type) {
-  StringRef enumerator;
+Attribute EnumFieldAttr::parse(AsmParser &p, Type) {
+  StringRef field;
   EnumType type;
-  if (p.parseLess() || p.parseKeyword(&enumerator) || p.parseComma() ||
+  if (p.parseLess() || p.parseKeyword(&field) || p.parseComma() ||
       p.parseType(type) || p.parseGreater())
     return Attribute();
-  return EnumValueAttr::get(p.getEncodedSourceLoc(p.getCurrentLocation()),
-                            StringAttr::get(p.getContext(), enumerator), type);
+  return EnumFieldAttr::get(p.getEncodedSourceLoc(p.getCurrentLocation()),
+                            StringAttr::get(p.getContext(), field), type);
 }
 
-void EnumValueAttr::print(AsmPrinter &p) const {
-  p << "<" << getValue().getValue() << ", ";
+void EnumFieldAttr::print(AsmPrinter &p) const {
+  p << "<" << getField().getValue() << ", ";
   p.printType(getType().getValue());
   p << ">";
 }
 
-Attribute EnumValueAttr::get(Location loc, StringAttr value,
+Attribute EnumFieldAttr::get(Location loc, StringAttr value,
                              hw::EnumType type) {
   // Check whether the provided value is a member of the enum type.
   if (!type.contains(value.getValue())) {

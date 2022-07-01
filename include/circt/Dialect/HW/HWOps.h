@@ -28,7 +28,7 @@
 namespace circt {
 namespace hw {
 
-class EnumValueAttr;
+class EnumFieldAttr;
 
 /// A module port direction.
 enum class PortDirection {
