@@ -299,7 +299,7 @@ static cl::opt<OutputFormatKind> outputFormat(
         clEnumValN(OutputSplitVerilog, "split-verilog",
                    "Emit Verilog (one file per module; specify "
                    "directory with -o=<dir>)"),
-        clEnumValN(OutputIRFir, "fir", "Emit FIRRTL after pipeline"),
+        clEnumValN(OutputFir, "fir", "Emit FIRRTL after pipeline"),
         clEnumValN(OutputDisabled, "disable-output", "Do not output anything")),
     cl::init(OutputVerilog), cl::cat(mainCategory));
 
