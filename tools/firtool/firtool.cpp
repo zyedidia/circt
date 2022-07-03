@@ -15,6 +15,7 @@
 #include "circt/Conversion/Passes.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/FIRRTL/CHIRRTLDialect.h"
+#include "circt/Dialect/FIRRTL/FIREmitter.h"
 #include "circt/Dialect/FIRRTL/FIRParser.h"
 #include "circt/Dialect/FIRRTL/FIRRTLDialect.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
@@ -280,6 +281,7 @@ enum OutputFormatKind {
   OutputIRVerilog,
   OutputVerilog,
   OutputSplitVerilog,
+  OutputFir,
   OutputDisabled
 };
 
@@ -297,6 +299,7 @@ static cl::opt<OutputFormatKind> outputFormat(
         clEnumValN(OutputSplitVerilog, "split-verilog",
                    "Emit Verilog (one file per module; specify "
                    "directory with -o=<dir>)"),
+        clEnumValN(OutputIRFir, "fir", "Emit FIRRTL after pipeline"),
         clEnumValN(OutputDisabled, "disable-output", "Do not output anything")),
     cl::init(OutputVerilog), cl::cat(mainCategory));
 
@@ -590,7 +593,7 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
         firrtl::createMergeConnectionsPass(mergeConnectionsAgggresively));
 
   // Lower if we are going to verilog or if lowering was specifically requested.
-  if (outputFormat != OutputIRFir) {
+  if (outputFormat != OutputIRFir && outputFormat != OutputFir) {
     pm.addPass(createLowerFIRRTLToHWPass(enableAnnotationWarning.getValue()));
 
     if (outputFormat == OutputIRHW) {
@@ -677,6 +680,12 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
       outputFormat == OutputIRSV || outputFormat == OutputIRVerilog) {
     auto outputTimer = ts.nest("Print .mlir output");
     module->print(outputFile.getValue()->os());
+  }
+
+  if (outputFormat == OutputFir) {
+    auto outputTimer = ts.nest("Print .fir output");
+    if (failed(firrtl::exportFIRFile(module.get(), outputFile.getValue()->os())))
+        return failure();
   }
 
   // If requested, print the final MLIR into mlirOutFile.
