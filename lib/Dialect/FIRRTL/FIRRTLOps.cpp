@@ -128,7 +128,7 @@ Flow firrtl::foldFlow(Value val, Flow accumulatedFlow) {
         return foldFlow(op.input(),
                         op.isFieldFlipped() ? swap() : accumulatedFlow);
       })
-      .Case<BitindexOp>(
+      .Case<BitindexOp, BitaccessOp>(
           [](auto) { return Flow::Sink; })
       .Case<SubindexOp, SubaccessOp>(
           [&](auto op) { return foldFlow(op.input(), accumulatedFlow); })
@@ -2498,6 +2498,13 @@ bool BitindexOp::isBitIndex(ValueRange operands,
   return inType.isa<IntType>();
 }
 
+bool BitaccessOp::isBitAccess(ValueRange operands,
+                              ArrayRef<NamedAttribute> attrs,
+                              Optional<Location> loc) {
+  auto inType = operands[0].getType();
+  return inType.isa<UIntType>();
+}
+
 FIRRTLType BitindexOp::inferReturnType(ValueRange operands,
                                        ArrayRef<NamedAttribute> attrs,
                                        Optional<Location> loc) {
@@ -2539,6 +2546,27 @@ FIRRTLType SubaccessOp::inferReturnType(ValueRange operands,
 
   if (loc)
     mlir::emitError(*loc, "subaccess requires vector operand, not ") << inType;
+  return {};
+}
+
+FIRRTLType BitaccessOp::inferReturnType(ValueRange operands,
+                                        ArrayRef<NamedAttribute> attrs,
+                                        Optional<Location> loc) {
+  auto inType = operands[0].getType();
+  auto indexType = operands[1].getType();
+
+  if (!indexType.isa<UIntType>()) {
+    if (loc)
+      mlir::emitError(*loc, "bitaccess index must be UInt type, not ")
+          << indexType;
+    return {};
+  }
+
+  if (inType.isa<IntType>())
+    return UIntType::get(inType.getContext(), 1);
+
+  if (loc)
+    mlir::emitError(*loc, "bitaccess requires integer operand, not ") << inType;
   return {};
 }
 
@@ -3929,6 +3957,10 @@ void SubindexOp::getAsmResultNames(OpAsmSetValueNameFn setNameFn) {
 }
 
 void BitindexOp::getAsmResultNames(OpAsmSetValueNameFn setNameFn) {
+  genericAsmResultNames(*this, setNameFn);
+}
+
+void BitaccessOp::getAsmResultNames(OpAsmSetValueNameFn setNameFn) {
   genericAsmResultNames(*this, setNameFn);
 }
 

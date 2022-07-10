@@ -207,9 +207,37 @@ def BitindexOp : FIRRTLExprOp<"bitindex", [
 
   let firrtlExtraClassDeclaration = [{
     static bool isBitIndex(ValueRange operands,
-                              ArrayRef<NamedAttribute> attrs,
-                              Optional<Location> loc);
+                           ArrayRef<NamedAttribute> attrs,
+                           Optional<Location> loc);
   }];
+}
+
+def BitaccessOp : FIRRTLExprOp<"bitaccess", [
+    BitIndexConstraint<"input", "result">
+  ]> {
+  let summary = "Extract a dynamic bit from a UInt or SInt";
+  let description = [{
+    The bitaccess expression dynamically refers, by index, to a bit
+    of an expression with an integer type. The index must be an expression
+    with an unsigned integer type.
+    ```
+      %result = firrtl.bitaccess %input[%idx] : t1, t2
+    ```
+    }];
+
+  let arguments = (ins FIRRTLType:$input, UIntType:$index);
+  let results = (outs FIRRTLType:$result);
+
+  let assemblyFormat =
+     "$input `[` $index `]` attr-dict `:` qualified(type($input)) `,` qualified(type($index))";
+
+  let firrtlExtraClassDeclaration = [{
+    static bool isBitAccess(ValueRange operands,
+                            ArrayRef<NamedAttribute> attrs,
+                            Optional<Location> loc);
+  }];
+
+  let hasCanonicalizeMethod = true;
 }
 
 class IndexConstraint<string value, string resultValue>

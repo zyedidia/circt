@@ -1886,14 +1886,31 @@ ParseResult FIRStmtParser::parsePostFixDynamicSubscript(Value &result) {
 
   // Make sure the index expression is valid and compute the result type for the
   // expression.
-  auto resultType = SubaccessOp::inferReturnType({result, index}, {}, {});
+  bool bitaccess = BitaccessOp::isBitAccess({result}, {}, {});
+  FIRRTLType resultType;
+  if (bitaccess) {
+    resultType = BitaccessOp::inferReturnType({result, index}, {}, {});
+  } else {
+    resultType = SubaccessOp::inferReturnType({result, index}, {}, {});
+  }
   if (!resultType) {
     // Emit the error at the right location.  translateLocation is expensive.
-    (void)SubaccessOp::inferReturnType({result, index}, {},
-                                       translateLocation(loc));
+    if (bitaccess) {
+      (void)BitaccessOp::inferReturnType({result, index}, {},
+                                         translateLocation(loc));
+    } else {
+      (void)SubaccessOp::inferReturnType({result, index}, {},
+                                         translateLocation(loc));
+    }
     return failure();
   }
 
+  if (bitaccess) {
+    // Create the result operation.
+    auto op = builder.create<BitaccessOp>(resultType, result, index);
+    result = op.getResult();
+    return success();
+  }
   // Create the result operation.
   auto op = builder.create<SubaccessOp>(resultType, result, index);
   result = op.getResult();

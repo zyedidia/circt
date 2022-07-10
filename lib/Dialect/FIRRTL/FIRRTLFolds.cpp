@@ -1349,6 +1349,22 @@ LogicalResult SubaccessOp::canonicalize(SubaccessOp op,
       });
 }
 
+LogicalResult BitaccessOp::canonicalize(BitaccessOp op,
+                                        PatternRewriter &rewriter) {
+  return canonicalizePrimOp(
+      op, rewriter, [&](ArrayRef<Attribute> operands) -> OpFoldResult {
+        if (auto constIndex = getConstant(operands[1])) {
+          // The BitindexOp require the index value to be unsigned 32-bits
+          // integer.
+          auto value = constIndex->getExtValue();
+          auto valueAttr = rewriter.getI32IntegerAttr(value);
+          return rewriter.createOrFold<BitindexOp>(
+              op.getLoc(), op.result().getType(), op.input(), valueAttr);
+        }
+        return {};
+      });
+}
+
 OpFoldResult MultibitMuxOp::fold(ArrayRef<Attribute> operands) {
   // If there is only one input, just return it.
   if (operands.size() == 2)
