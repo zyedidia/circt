@@ -16,6 +16,7 @@
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/FIRRTL/CHIRRTLDialect.h"
 #include "circt/Dialect/FIRRTL/FIRParser.h"
+#include "circt/Dialect/FIRRTL/GoEmitter.h"
 #include "circt/Dialect/FIRRTL/FIRRTLDialect.h"
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/Passes.h"
@@ -280,6 +281,7 @@ enum OutputFormatKind {
   OutputIRVerilog,
   OutputVerilog,
   OutputSplitVerilog,
+  OutputGo,
   OutputDisabled
 };
 
@@ -297,6 +299,7 @@ static cl::opt<OutputFormatKind> outputFormat(
         clEnumValN(OutputSplitVerilog, "split-verilog",
                    "Emit Verilog (one file per module; specify "
                    "directory with -o=<dir>)"),
+        clEnumValN(OutputGo, "go", "Emit Go simulator"),
         clEnumValN(OutputDisabled, "disable-output", "Do not output anything")),
     cl::init(OutputVerilog), cl::cat(mainCategory));
 
@@ -590,7 +593,7 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
         firrtl::createMergeConnectionsPass(mergeConnectionsAgggresively));
 
   // Lower if we are going to verilog or if lowering was specifically requested.
-  if (outputFormat != OutputIRFir) {
+  if (outputFormat != OutputIRFir && outputFormat != OutputGo) {
     pm.addPass(createLowerFIRRTLToHWPass(enableAnnotationWarning.getValue()));
 
     if (outputFormat == OutputIRHW) {
@@ -671,6 +674,13 @@ processBuffer(MLIRContext &context, TimingScope &ts, llvm::SourceMgr &sourceMgr,
 
     if (failed(exportPm.run(module.get())))
       return failure();
+  }
+
+  if (outputFormat == OutputGo) {
+    auto outputTimer = ts.nest("Print .go output");
+    if (failed(firrtl::exportGoFile(module.get(), outputFile.getValue()->os()))) {
+      return failure();
+    }
   }
 
   if (outputFormat == OutputIRFir || outputFormat == OutputIRHW ||

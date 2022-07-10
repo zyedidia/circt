@@ -7,6 +7,7 @@ add_llvm_tool(firtool
 )
 llvm_update_compile_flags(firtool)
 target_link_libraries(firtool PRIVATE
+  CIRCTExportFIRRTL
   CIRCTExportVerilog
   CIRCTImportFIRFile
   CIRCTFIRRTLToHW
