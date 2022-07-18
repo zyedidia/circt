@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <iostream>
 #include "../PassDetail.h"
 #include "circt/Conversion/FIRRTLToHW.h"
 #include "circt/Dialect/Comb/CombOps.h"
@@ -2961,6 +2962,10 @@ LogicalResult FIRRTLLowering::visitDecl(MemOp op) {
   // Update all users of the result of read ports
   for (auto &ret : returnHolder)
     (void)setLowering(ret.first->getResult(0), inst.getResult(ret.second));
+
+  addToInitialBlock([&]() {
+    builder.create<sv::ReadmemOp>("test.hex");
+  });
   return success();
 }
 

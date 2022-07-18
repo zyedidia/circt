@@ -88,6 +88,10 @@ constexpr const char *noDedupAnnoClass = "firrtl.transforms.NoDedupAnnotation";
 constexpr const char *dftTestModeEnableAnnoClass =
     "sifive.enterprise.firrtl.DFTTestModeEnableAnnotation";
 
+// Memory annotations
+constexpr const char *memoryFileInline =
+    "firrtl.annotations.MemoryFileInlineAnnotation";
+
 // Grand Central Annotations
 constexpr const char *serializedViewAnnoClass =
     "sifive.enterprise.grandcentral.GrandCentralView$SerializedViewAnnotation";

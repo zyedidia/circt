@@ -632,6 +632,15 @@ def ExitOp : SVOp<"exit", [ProceduralOp]> {
   let assemblyFormat = "attr-dict";
 }
 
+def ReadmemOp : SVOp<"readmem", [ProceduralOp]> {
+  let summary = "`$readmem` memory file";
+  let description = [{
+    Reads the contents of a file into an SRAM.
+  }];
+  let arguments = (ins StrAttr:$message);
+  let assemblyFormat = "attr-dict";
+}
+
 //===----------------------------------------------------------------------===//
 // Severity Message Tasks
 //===----------------------------------------------------------------------===//
