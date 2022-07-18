@@ -162,6 +162,10 @@ Value HWMemSimImpl::addPipelineStages(ImplicitLocOpBuilder &b,
 void HWMemSimImpl::generateMemory(HWModuleOp op, FirMemory mem) {
   ImplicitLocOpBuilder b(op.getLoc(), op.getBody());
 
+  b.create<sv::InitialOp>([&]() {
+      b.create<sv::ReadmemOp>("test.hex");
+  });
+
   ModuleNamespace moduleNamespace(op);
 
   // Compute total number of mask bits.

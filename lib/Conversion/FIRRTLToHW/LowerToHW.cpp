@@ -2963,9 +2963,6 @@ LogicalResult FIRRTLLowering::visitDecl(MemOp op) {
   for (auto &ret : returnHolder)
     (void)setLowering(ret.first->getResult(0), inst.getResult(ret.second));
 
-  addToInitialBlock([&]() {
-    builder.create<sv::ReadmemOp>("test.hex");
-  });
   return success();
 }
 
