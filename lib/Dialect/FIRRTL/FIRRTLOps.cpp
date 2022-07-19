@@ -12,6 +12,7 @@
 
 #include "circt/Dialect/FIRRTL/FIRRTLOps.h"
 #include "circt/Dialect/FIRRTL/CHIRRTLDialect.h"
+#include "circt/Dialect/FIRRTL/AnnotationDetails.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAnnotations.h"
 #include "circt/Dialect/FIRRTL/FIRRTLAttributes.h"
 #include "circt/Dialect/FIRRTL/FIRRTLTypes.h"
@@ -1999,11 +2000,16 @@ FirMemory MemOp::getSummary() {
             op.getMaskBits(), (size_t)op.getRuw(), (unsigned)hw::WUW::PortOrder,
             groupID, clocks.empty() ? "" : "_" + clocks));
   }
+  StringRef filename = "";
+  if (auto memAnno = AnnotationSet(op).getAnnotation(memoryFileInline)) {
+    filename = memAnno.getMember<StringAttr>("filename").getValue();
+  }
+
   return {numReadPorts,         numWritePorts,    numReadWritePorts,
           (size_t)width,        op.getDepth(),    op.getReadLatency(),
           op.getWriteLatency(), op.getMaskBits(), (size_t)op.getRuw(),
           hw::WUW::PortOrder,   writeClockIDs,    modName,
-          op.getMaskBits() > 1, groupID,          op.getLoc()};
+          op.getMaskBits() > 1, groupID,          op.getLoc(), filename};
 }
 
 void MemOp::getAsmResultNames(OpAsmSetValueNameFn setNameFn) {

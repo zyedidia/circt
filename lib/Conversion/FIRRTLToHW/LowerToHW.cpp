@@ -724,8 +724,9 @@ void FIRRTLModuleLowering::lowerMemoryDecls(ArrayRef<FirMemory> mems,
     // Mask granularity is the number of data bits that each mask bit can
     // guard. By default it is equal to the data bitwidth.
     auto maskGran = mem.isMasked ? mem.dataWidth / mem.maskBits : mem.dataWidth;
+
     NamedAttribute genAttrs[] = {
-        b.getNamedAttr("filename", b.getStringAttr("test.hex")),
+        b.getNamedAttr("filename", b.getStringAttr(mem.filename)),
         b.getNamedAttr("depth", b.getI64IntegerAttr(mem.depth)),
         b.getNamedAttr("numReadPorts", b.getUI32IntegerAttr(mem.numReadPorts)),
         b.getNamedAttr("numWritePorts",

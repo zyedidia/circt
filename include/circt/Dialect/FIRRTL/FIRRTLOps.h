@@ -190,6 +190,7 @@ struct FirMemory {
 
   // Location is carried along but not considered part of the identity of this.
   Location loc;
+  StringRef filename;
   // Flag to indicate if the memory was under the DUT hierarchy, only used in
   // LowerToHW. Not part of the identity.
   bool isInDut = false;

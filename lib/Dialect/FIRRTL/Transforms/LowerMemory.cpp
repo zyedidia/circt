@@ -75,11 +75,17 @@ FirMemory getSummary(MemOp op) {
   uint32_t groupID = 0;
   if (auto gID = op.getGroupIDAttr())
     groupID = gID.getUInt();
+
+  StringRef filename = "";
+  if (auto memAnno = AnnotationSet(op).getAnnotation(memoryFileInline)) {
+    filename = memAnno.getMember<StringAttr>("filename").getValue();
+  }
+
   return {numReadPorts,         numWritePorts,    numReadWritePorts,
           (size_t)width,        op.getDepth(),    op.getReadLatency(),
           op.getWriteLatency(), op.getMaskBits(), (size_t)op.getRuw(),
           hw::WUW::PortOrder,   writeClockIDs,    op.getNameAttr(),
-          op.getMaskBits() > 1, groupID,          op.getLoc()};
+          op.getMaskBits() > 1, groupID,          op.getLoc(), filename};
 }
 
 namespace {

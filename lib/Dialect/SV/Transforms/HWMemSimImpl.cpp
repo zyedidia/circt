@@ -83,7 +83,9 @@ static FirMemory analyzeMemOp(HWModuleGeneratedOp op) {
   mem.writeLatency = op->getAttrOfType<IntegerAttr>("writeLatency").getUInt();
   mem.dataWidth = op->getAttrOfType<IntegerAttr>("width").getUInt();
   if (op->hasAttrOfType<StringAttr>("filename")) {
-    mem.filename = op->getAttrOfType<StringAttr>("filename");
+    auto f = op->getAttrOfType<StringAttr>("filename");
+    if (f.size() != 0)
+      mem.filename = f;
   }
   if (op->hasAttrOfType<IntegerAttr>("maskGran"))
     mem.maskGran = op->getAttrOfType<IntegerAttr>("maskGran").getUInt();
