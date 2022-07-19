@@ -48,6 +48,8 @@ public:
             CoverConcurrentOp,
             // Bind Statements
             BindOp,
+            // Memory initialization statements
+            ReadmemOp,
             // Simulator control tasks
             StopOp, FinishOp, ExitOp,
             // Severity message tasks
@@ -139,6 +141,9 @@ public:
 
   // Bind statements.
   HANDLE(BindOp, Unhandled);
+
+  // Memory initialization statements
+  HANDLE(ReadmemOp, Unhandled);
 
   // Simulator control tasks
   HANDLE(StopOp, Unhandled);

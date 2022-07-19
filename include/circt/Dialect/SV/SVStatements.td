@@ -637,8 +637,8 @@ def ReadmemOp : SVOp<"readmem", [ProceduralOp]> {
   let description = [{
     Reads the contents of a file into an SRAM.
   }];
-  let arguments = (ins StrAttr:$message);
-  let assemblyFormat = "attr-dict";
+  let arguments = (ins InOutType:$mem, StrAttr:$filename);
+  let assemblyFormat = "$mem attr-dict `:` qualified(type($mem))";
 }
 
 //===----------------------------------------------------------------------===//

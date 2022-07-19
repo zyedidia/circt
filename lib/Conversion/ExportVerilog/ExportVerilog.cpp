@@ -2666,6 +2666,7 @@ private:
   LogicalResult visitSV(StopOp op);
   LogicalResult visitSV(FinishOp op);
   LogicalResult visitSV(ExitOp op);
+  LogicalResult visitSV(ReadmemOp op);
 
   LogicalResult emitSeverityMessageTask(Operation *op, StringRef taskName,
                                         Optional<unsigned> verbosity,
@@ -3068,6 +3069,18 @@ LogicalResult StmtEmitter::visitSV(FinishOp op) {
 
 LogicalResult StmtEmitter::visitSV(ExitOp op) {
   return emitSimulationControlTask(op, "$exit", {});
+}
+
+LogicalResult StmtEmitter::visitSV(ReadmemOp op) {
+    SmallPtrSet<Operation *, 8> ops;
+    ops.insert(op);
+    indent() << "$readmemh(";
+    os << "\"" << op.filename() << "\"";
+    os << ", ";
+    emitExpression(op.getOperand(), ops);
+    os << ");";
+    emitLocationInfoAndNewLine(ops);
+    return success();
 }
 
 /// Emit one of the severity message tasks `$fatal`, `$error`, `$warning`, or

@@ -658,8 +658,8 @@ void FIRRTLModuleLowering::lowerMemoryDecls(ArrayRef<FirMemory> mems,
   // Insert memories at the bottom of the file.
   OpBuilder b(state.circuitOp);
   b.setInsertionPointAfter(state.circuitOp);
-  std::array<StringRef, 11> schemaFields = {
-      "depth",          "numReadPorts",    "numWritePorts", "numReadWritePorts",
+  std::array<StringRef, 12> schemaFields = {
+      "filename", "depth",          "numReadPorts",    "numWritePorts", "numReadWritePorts",
       "readLatency",    "writeLatency",    "width",         "maskGran",
       "readUnderWrite", "writeUnderWrite", "writeClockIDs"};
   auto schemaFieldsAttr = b.getStrArrayAttr(schemaFields);
@@ -725,6 +725,7 @@ void FIRRTLModuleLowering::lowerMemoryDecls(ArrayRef<FirMemory> mems,
     // guard. By default it is equal to the data bitwidth.
     auto maskGran = mem.isMasked ? mem.dataWidth / mem.maskBits : mem.dataWidth;
     NamedAttribute genAttrs[] = {
+        b.getNamedAttr("filename", b.getStringAttr("test.hex")),
         b.getNamedAttr("depth", b.getI64IntegerAttr(mem.depth)),
         b.getNamedAttr("numReadPorts", b.getUI32IntegerAttr(mem.numReadPorts)),
         b.getNamedAttr("numWritePorts",

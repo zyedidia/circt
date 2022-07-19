@@ -38,6 +38,7 @@ struct FirMemory {
   size_t readLatency;
   size_t writeLatency;
   size_t readUnderWrite;
+  Optional<StringRef> filename;
   WUW writeUnderWrite;
   SmallVector<int32_t> writeClockIDs;
 };
@@ -81,6 +82,9 @@ static FirMemory analyzeMemOp(HWModuleGeneratedOp op) {
   mem.readLatency = op->getAttrOfType<IntegerAttr>("readLatency").getUInt();
   mem.writeLatency = op->getAttrOfType<IntegerAttr>("writeLatency").getUInt();
   mem.dataWidth = op->getAttrOfType<IntegerAttr>("width").getUInt();
+  if (op->hasAttrOfType<StringAttr>("filename")) {
+    mem.filename = op->getAttrOfType<StringAttr>("filename");
+  }
   if (op->hasAttrOfType<IntegerAttr>("maskGran"))
     mem.maskGran = op->getAttrOfType<IntegerAttr>("maskGran").getUInt();
   else
@@ -162,10 +166,6 @@ Value HWMemSimImpl::addPipelineStages(ImplicitLocOpBuilder &b,
 void HWMemSimImpl::generateMemory(HWModuleOp op, FirMemory mem) {
   ImplicitLocOpBuilder b(op.getLoc(), op.getBody());
 
-  b.create<sv::InitialOp>([&]() {
-      b.create<sv::ReadmemOp>("test.hex");
-  });
-
   ModuleNamespace moduleNamespace(op);
 
   // Compute total number of mask bits.
@@ -179,6 +179,12 @@ void HWMemSimImpl::generateMemory(HWModuleOp op, FirMemory mem) {
   // Create registers for the memory.
   Value reg = b.create<sv::RegOp>(UnpackedArrayType::get(dataType, mem.depth),
                                   b.getStringAttr("Memory"));
+
+  if (mem.filename.hasValue()) {
+    b.create<sv::InitialOp>([&]() {
+        b.create<sv::ReadmemOp>(reg, mem.filename.getValue());
+    });
+  }
 
   SmallVector<Value, 4> outputs;
 
