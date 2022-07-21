@@ -3075,7 +3075,7 @@ LogicalResult StmtEmitter::visitSV(ReadmemOp op) {
     SmallPtrSet<Operation *, 8> ops;
     ops.insert(op);
     indent() << "$readmemh(";
-    os << "\"" << op.filename() << "\"";
+    os << "\"" << op.getFilename() << "\"";
     os << ", ";
     emitExpression(op.getOperand(), ops);
     os << ");";
