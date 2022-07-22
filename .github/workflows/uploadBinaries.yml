@@ -8,7 +8,7 @@ jobs:
   publish:
     strategy:
       matrix:
-        os: [ubuntu-latest macos-latest]
+        os: [ubuntu-latest, macos-latest]
         compiler:
           - cc: clang
             cxx: clang++
