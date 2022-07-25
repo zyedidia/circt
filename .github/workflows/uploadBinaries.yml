@@ -51,12 +51,14 @@ jobs:
             llvm/install
           key: ${{ matrix.os }}-llvm-${{ steps.get-llvm-hash.outputs.hash }}-${{ steps.get-workflow-hash.outputs.hash }}-${{ matrix.compiler.cc }} 
 
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@v1.1
+
       # Build LLVM if we didn't hit in the cache. Even though we build it in
       # the previous job, there is a low chance that it'll have been evicted by
       # the time we get here.
       - name: Rebuild and Install LLVM
         if: steps.cache-llvm.outputs.cache-hit != 'true'
-        uses: seanmiddleditch/gha-setup-ninja@v3
         run: utils/build-llvm-publish.sh build install ${{ matrix.compiler.mode }} ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
 
       # --------
@@ -64,7 +66,6 @@ jobs:
       # --------
 
       - name: Build and Test CIRCT
-        uses: seanmiddleditch/gha-setup-ninja@v3
         run: |
           mkdir build
           cd build
