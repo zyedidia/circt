@@ -6,12 +6,13 @@ on:
 
 jobs:
   publish:
+    - uses: seanmiddleditch/gha-setup-ninja@v3
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
         compiler:
-          - cc: gcc
-            cxx: g++
+          - cc: clang
+            cxx: clang++
             mode: release
             assert: OFF
             shared: OFF
@@ -66,7 +67,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. \
+          cmake -G Ninja .. \
             -DBUILD_SHARED_LIBS=${{ matrix.compiler.shared }} \
             -DCMAKE_BUILD_TYPE=${{ matrix.compiler.mode }} \
             -DLLVM_ENABLE_ASSERTIONS=${{ matrix.compiler.assert }} \
@@ -79,8 +80,9 @@ jobs:
             -DVERILATOR_DISABLE=ON \
             -DLLVM_ENABLE_TERMINFO=OFF \
             -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+            -DLLVM_PARALLEL_LINK_JOBS=1 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF
-          make check-circt -j$(nproc)
+          ninja
       - name: Package Binaries
         run: |
           cd build

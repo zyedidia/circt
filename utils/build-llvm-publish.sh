@@ -22,7 +22,7 @@ EXTRA_ARGS=${@:6}
 mkdir -p llvm/$BUILD_DIR
 mkdir -p llvm/$INSTALL_DIR
 cd llvm/$BUILD_DIR
-cmake ../llvm \
+cmake -G Ninja ../llvm \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
@@ -36,5 +36,6 @@ cmake ../llvm \
     -DLLVM_OPTIMIZED_TABLEGEN=ON \
     -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
     -DLLVM_ENABLE_TERMINFO=OFF \
-    -DLLVM_TARGETS_TO_BUILD="host" && \
-cmake --build . --target install -- -j$(nproc)
+    -DLLVM_PARALLEL_LINK_JOBS=1 \
+    -DLLVM_TARGETS_TO_BUILD="host"
+ninja
