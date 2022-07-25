@@ -51,8 +51,13 @@ jobs:
             llvm/install
           key: ${{ matrix.os }}-llvm-${{ steps.get-llvm-hash.outputs.hash }}-${{ steps.get-workflow-hash.outputs.hash }}-${{ matrix.compiler.cc }} 
 
-      - name: Setup Ninja
-        uses: ashutoshvarma/setup-ninja@v1.1
+      - name: Setup Ninja Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get install ninja-build
+
+      - name: Setup Ninja Mac
+        if: runner.os == 'Linux'
+        run: brew install ninja
 
       # Build LLVM if we didn't hit in the cache. Even though we build it in
       # the previous job, there is a low chance that it'll have been evicted by
