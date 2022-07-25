@@ -64,7 +64,7 @@ jobs:
       # the time we get here.
       - name: Rebuild and Install LLVM
         if: steps.cache-llvm.outputs.cache-hit != 'true'
-        run: utils/build-llvm-publish.sh build install ${{ matrix.compiler.mode }} ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
+        run: utils/build-llvm-publish.sh build ${{ matrix.compiler.mode }} ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
 
       # --------
       # Build and test CIRCT
@@ -78,12 +78,11 @@ jobs:
             -DBUILD_SHARED_LIBS=${{ matrix.compiler.shared }} \
             -DCMAKE_BUILD_TYPE=${{ matrix.compiler.mode }} \
             -DLLVM_ENABLE_ASSERTIONS=${{ matrix.compiler.assert }} \
-            -DMLIR_DIR=`pwd`/../llvm/install/lib/cmake/mlir \
-            -DLLVM_DIR=`pwd`/../llvm/install/lib/cmake/llvm \
+            -DMLIR_DIR=`pwd`/../llvm/build/lib/cmake/mlir \
+            -DLLVM_DIR=`pwd`/../llvm/build/lib/cmake/llvm \
             -DLLVM_USE_LINKER=lld \
             -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} \
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
-            -DLLVM_EXTERNAL_LIT=`pwd`/../llvm/build/bin/llvm-lit \
             -DVERILATOR_DISABLE=ON \
             -DLLVM_ENABLE_TERMINFO=OFF \
             -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
