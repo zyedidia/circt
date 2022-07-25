@@ -8,7 +8,7 @@ jobs:
   publish:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macOS-latest]
         compiler:
           - cc: clang
             cxx: clang++
@@ -52,11 +52,11 @@ jobs:
           key: ${{ matrix.os }}-llvm-${{ steps.get-llvm-hash.outputs.hash }}-${{ steps.get-workflow-hash.outputs.hash }}-${{ matrix.compiler.cc }} 
 
       - name: Setup Ninja Linux
-        if: runner.os == 'Linux'
+        if: if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get install ninja-build
 
       - name: Setup Ninja Mac
-        if: runner.os == 'Linux'
+        if: if: matrix.os == 'macOS-latest'
         run: brew install ninja
 
       # Build LLVM if we didn't hit in the cache. Even though we build it in
