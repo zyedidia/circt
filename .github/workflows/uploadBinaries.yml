@@ -17,9 +17,6 @@ jobs:
             shared: OFF
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Get Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v3
-
       - name: Configure Environment
         run: echo "$GITHUB_WORKSPACE/llvm/install/bin" >> $GITHUB_PATH
 
@@ -59,6 +56,7 @@ jobs:
       # the time we get here.
       - name: Rebuild and Install LLVM
         if: steps.cache-llvm.outputs.cache-hit != 'true'
+        uses: seanmiddleditch/gha-setup-ninja@v3
         run: utils/build-llvm-publish.sh build install ${{ matrix.compiler.mode }} ${{ matrix.compiler.cc }} ${{ matrix.compiler.cxx }}
 
       # --------
@@ -66,6 +64,7 @@ jobs:
       # --------
 
       - name: Build and Test CIRCT
+        uses: seanmiddleditch/gha-setup-ninja@v3
         run: |
           mkdir build
           cd build
