@@ -6,7 +6,6 @@ on:
 
 jobs:
   publish:
-    - uses: seanmiddleditch/gha-setup-ninja@v3
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -18,6 +17,9 @@ jobs:
             shared: OFF
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Get Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
       - name: Configure Environment
         run: echo "$GITHUB_WORKSPACE/llvm/install/bin" >> $GITHUB_PATH
 
