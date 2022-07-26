@@ -10,8 +10,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         compiler:
-          - cc: clang
-            cxx: clang++
+          - cc: gcc-10
+            cxx: g++-10
             mode: release
             assert: OFF
             shared: OFF
