@@ -19,12 +19,15 @@ jobs:
           - runner: ubuntu-20.04
             os: linux
             cmake-args: ''
+            tar: tar
           - runner: ubuntu-18.04
             os: linux
             cmake-args: ''
+            tar: tar
           - runner: macos-11
             os: macos
             cmake-args: '-DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++"'
+            tar: gtar
     runs-on: ${{ matrix.runner }}
     steps:
       # Clone the CIRCT repo and its submodules. Do shallow clone to save clone
@@ -61,9 +64,9 @@ jobs:
         if: matrix.os == 'linux'
         run: sudo apt-get install ninja-build
 
-      - name: Setup Ninja Mac
+      - name: Setup Ninja and GNU Tar Mac
         if: matrix.os == 'macos'
-        run: brew install ninja
+        run: brew install ninja gnu-tar
 
       # Build LLVM if we didn't hit in the cache. Even though we build it in
       # the previous job, there is a low chance that it'll have been evicted by
@@ -119,7 +122,7 @@ jobs:
       - name: Package Binaries
         run: |
           cd build
-          tar czf circt-bin-${{ matrix.runner }}.tar.gz bin
+          ${{ matrix.tar }} czf circt-bin-${{ matrix.runner }}.tar.gz bin
       - name: Show Tarball
         run: |
           cd build
