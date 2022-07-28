@@ -46,7 +46,7 @@ jobs:
 
       - name: Get workflow spec hash
         id: get-workflow-hash
-        run: echo "::set-output name=hash::$(md5sum $GITHUB_WORKSPACE/.github/workflows/uploadBinaries.yml | awk '{print $1}')"
+        run: echo "::set-output name=hash::$(shasum $GITHUB_WORKSPACE/.github/workflows/uploadBinaries.yml | awk '{print $1}')"
 
       # Try to fetch LLVM from the cache.
       - name: Cache LLVM
@@ -55,7 +55,7 @@ jobs:
         with:
           path: |
             llvm/build
-          key: ${{ matrix.runner }}-llvm-${{ steps.get-llvm-hash.outputs.hash }}-${{ steps.get-workflow-hash.outputs.hash }}-${{ matrix.compiler.cc }} 
+          key: ${{ matrix.runner }}-llvm-${{ steps.get-llvm-hash.outputs.hash }}-${{ steps.get-workflow-hash.outputs.hash }}-${{ matrix.compiler.cc }}
 
       - name: Setup Ninja Linux
         if: matrix.os == 'linux'
@@ -119,7 +119,12 @@ jobs:
       - name: Package Binaries
         run: |
           cd build
-          tar -czf circt-bin-${{ matrix.runner }}.tar.gz bin 
+          tar czf circt-bin-${{ matrix.runner }}.tar.gz bin
+      - name: Show Tarball
+        run: |
+          cd build
+          ls -l circt-bin-${{ matrix.runner }}.tar.gz
+          shasum -a 256 circt-bin-${{ matrix.runner }}.tar.gz
       - name: Upload Binaries
         uses: AButler/upload-release-assets@v2.0
         with:
