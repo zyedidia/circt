@@ -114,6 +114,8 @@ jobs:
             -DLLVM_PARALLEL_LINK_JOBS=1 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF
           ninja
+      - name: Display Files
+        run: file build/bin/*
       - name: Package Binaries
         run: |
           cd build
