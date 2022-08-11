@@ -9,8 +9,8 @@ jobs:
     strategy:
       matrix:
         compiler:
-          - cc: gcc-10
-            cxx: g++-10
+          - cc: clang
+            cxx: clang++
             mode: release
             assert: OFF
             shared: OFF
@@ -117,6 +117,7 @@ jobs:
             -DLLVM_PARALLEL_LINK_JOBS=1 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF
           ninja
+          ninja check-circt
       - name: Display Files
         run: file build/bin/*
       - name: Package Binaries
