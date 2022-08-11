@@ -26,7 +26,7 @@ jobs:
             tar: tar
           - runner: macos-11
             os: macos
-            cmake-args: '-DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++"'
+            cmake-args: '-DCMAKE_CXX_FLAGS="-static-libstdc++"'
             tar: gtar
     runs-on: ${{ matrix.runner }}
     steps:
