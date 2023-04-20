@@ -153,53 +153,62 @@ Value ClockLowering::materializeValue(Value value) {
     return mapped;
 
   SmallPtrSet<Operation *, 8> seen;
-  SmallVector<std::pair<Operation *, bool>> worklist;
+  SmallVector<std::pair<Operation *, SmallVector<Value, 2>>> worklist;
   seen.insert(value.getDefiningOp());
-  worklist.push_back({value.getDefiningOp(), false});
+  worklist.push_back({value.getDefiningOp(), {}});
 
   while (!worklist.empty()) {
-    auto &[op, operandsHandled] = worklist.back();
-    if (!operandsHandled) {
-      operandsHandled = true;
+    auto &[op, mappedOperands] = worklist.back();
+    if (mappedOperands.size() < op->getNumOperands()) {
+      auto operand = op->getOperand(mappedOperands.size());
+      auto mapped = materializedValues.lookupOrNull(operand);
       SmallDenseSet<Value> seenOperands;
       Operation *outerOp = op;
-      bool loopDetected = false;
+      LLVM_DEBUG(llvm::dbgs() << "operands: " << mappedOperands.size() << " " << op->getNumOperands() << " " << mapped << "\n");
       LLVM_DEBUG(llvm::dbgs() << "Operation " << *op << "\n");
-      op->walk([&](Operation *innerOp) {
-        for (auto operand : innerOp->getOperands()) {
+      if (!mapped) {
+        LLVM_DEBUG(llvm::dbgs() << "- Checking operand " << operand << "\n");
+        auto materialize = [&]() {
           // Skip operands that are defined within the outer operation.
-          LLVM_DEBUG(llvm::dbgs() << "- Checking operand " << operand << "\n");
-          if (!operand.getParentBlock()->getParentOp()->isProperAncestor(
-                  outerOp))
-            continue;
-          LLVM_DEBUG(llvm::dbgs() << "  - Materialize\n");
+          // if (!operand.getParentBlock()->getParentOp()->isProperAncestor(
+          //         outerOp))
+          //   return false;
 
           // Skip operands that we have already pushed onto the worklist.
           if (!seenOperands.insert(operand).second)
-            continue;
+            return false;
 
           // Skip operands that we have already materialized or that should not
           // be materialized at all.
           if (materializedValues.contains(operand) ||
               !shouldMaterialize(operand))
-            continue;
+            return false;
+
+          return true;
+        }();
+        if (materialize) {
+          LLVM_DEBUG(llvm::dbgs() << "  - Materialize\n");
 
           // Break combinational loops.
           auto *defOp = operand.getDefiningOp();
           if (!seen.insert(defOp).second) {
             defOp->emitError("combinational loop detected");
-            loopDetected = true;
-            continue;
+            return {};
           }
-          worklist.push_back({defOp, false});
+          worklist.push_back({defOp, {}});
+        } else {
+          mapped = operand;
         }
-      });
-      if (loopDetected)
-        return {};
+      }
+      mappedOperands.push_back(mapped);
     } else {
       auto *newOp = builder.clone(*op, materializedValues);
+      ++stats.matOpsCloned;
       (void) newOp;
       LLVM_DEBUG(llvm::dbgs() << "Cloned " << *newOp << "\n");
+      for (auto [oldResult, newResult] :
+              llvm::zip(op->getResults(), newOp->getResults()))
+          materializedValues.map(oldResult, newResult);
       seen.erase(op);
       worklist.pop_back();
     }
