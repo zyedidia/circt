@@ -650,8 +650,17 @@ void Emitter::emitArc(arc::StateWriteOp op) {
   indent();
   emitValue(op.getState());
   os << " = ";
-  emitValue(op.getValue());
-  os << ";\n";
+  if (!op.getCondition()) {
+    emitValue(op.getValue());
+    os << ";\n";
+  } else {
+    emitValue(op.getValue());
+    os << ".mux(";
+    emitValue(op.getCondition());
+    os << ", ";
+    emitValue(op.getState());
+    os << ");\n";
+  }
 }
 
 void Emitter::emitArc(arc::MemoryWriteOp op) {
@@ -765,4 +774,3 @@ void registerToCppFileTranslation() {
 
 } // namespace arc
 } // namespace circt
-
