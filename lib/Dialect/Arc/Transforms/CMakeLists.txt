@@ -4,6 +4,7 @@ add_circt_dialect_library(CIRCTArcTransforms
   ArcCanonicalizer.cpp
   Dedup.cpp
   GroupResetsAndEnables.cpp
+  ExportCpp.cpp
   InferMemories.cpp
   InferStateProperties.cpp
   InlineArcs.cpp
