@@ -113,7 +113,7 @@ private:
 
   /// Return the name used during emission of a `Value`, or none if the value
   /// has not yet been emitted or it was emitted inline.
-  llvm::Optional<StringRef> lookupEmittedName(Value value) {
+  std::optional<StringRef> lookupEmittedName(Value value) {
     auto it = valueNames.find(value);
     if (it != valueNames.end())
       return {it->second};
