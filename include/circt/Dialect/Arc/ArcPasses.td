@@ -290,4 +290,11 @@ def StripSV : Pass<"arc-strip-sv", "mlir::ModuleOp"> {
                            "hw::HWDialect", "seq::SeqDialect"];
 }
 
+def Symbolize : Pass<"arc-symbolize", "mlir::ModuleOp"> {
+  let summary = "Insert symbolic callbacks for concolic execution";
+  let constructor = "circt::arc::createSymbolizePass()";
+  let dependentDialects = ["arc::ArcDialect", "comb::CombDialect",
+                           "hw::HWDialect", "seq::SeqDialect", "mlir::LLVM::LLVMDialect"];
+}
+
 #endif // CIRCT_DIALECT_ARC_ARCPASSES_TD

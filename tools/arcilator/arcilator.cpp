@@ -104,6 +104,11 @@ static cl::opt<bool>
                    cl::desc("Optimize arcs into lookup tables"), cl::init(true),
                    cl::cat(mainCategory));
 
+static cl::opt<bool>
+    shouldSymbolize("symbolize",
+                   cl::desc("Create instrumentation for symbolic execution"), cl::init(false),
+                   cl::cat(mainCategory));
+
 static cl::opt<bool> printDebugInfo("print-debug-info",
                                     cl::desc("Print debug information"),
                                     cl::init(false), cl::cat(mainCategory));
@@ -262,6 +267,9 @@ static void populatePipeline(PassManager &pm) {
   pm.addPass(arc::createLegalizeStateUpdatePass());
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());
+
+  if (shouldSymbolize)
+    pm.addPass(arc::createSymbolizePass());
 
   // Allocate states.
   if (untilReached(UntilStateAlloc))
