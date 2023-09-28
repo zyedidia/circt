@@ -43,7 +43,8 @@ struct SymbolizePass : public arc::impl::SymbolizeBase<SymbolizePass> {
   void visitModel(ModelOp model);
   void visitClockTree(ClockTreeOp clock, ModelOp model);
   void visitPassThrough(PassThroughOp pass, ModelOp model);
-  void visitModelBodyOp(Operation *op);
+  void visitModelBodyOp(Value storage, Operation *op);
+  void visitClockBodyOp(Operation *op);
 
   void visitComb(comb::AddOp op);
   void visitComb(comb::MulOp op);
@@ -158,7 +159,19 @@ void SymbolizePass::visitArc(arc::MemoryReadOp op) {}
 void SymbolizePass::visitArc(arc::MemoryWriteOp op) {}
 void SymbolizePass::visitArc(arc::ClockGateOp op) {}
 
-void SymbolizePass::visitModelBodyOp(Operation *op) {
+void SymbolizePass::visitModelBodyOp(Value storage, Operation *op) {
+  TypeSwitch<Operation *>(op)
+      .Case<arc::AllocStateOp>([&](auto op) {
+          OpBuilder builder(op);
+          auto sym = builder.create<arc::AllocStateOp>(op.getLoc(), StateType::get(builder.getI64Type()), storage);
+          // if (StringAttr name = op->template getAttrOfType<StringAttr>("name")) {
+          //   sym->setAttr("name", name);
+          // }
+      })
+      .Default([&](auto op) {});
+}
+
+void SymbolizePass::visitClockBodyOp(Operation *op) {
   TypeSwitch<Operation *>(op)
       .Case<comb::AddOp, comb::MulOp, comb::DivUOp, comb::DivSOp, comb::ModUOp,
             comb::ModSOp, comb::ShlOp, comb::ShrUOp, comb::ShrSOp, comb::SubOp,
@@ -174,25 +187,19 @@ void SymbolizePass::visitModelBodyOp(Operation *op) {
       .Default([&](auto op) {
         if (!isa<AllocStateOp, AllocMemoryOp, RootInputOp, RootOutputOp,
                  ClockTreeOp, PassThroughOp>(op))
-          emitOpError(op, "cannot be emitted");
+          emitOpError(op, "clock body op cannot be emitted");
       });
 }
 
 void SymbolizePass::visitClockTree(ClockTreeOp clock, ModelOp model) {
-  // for (auto &op : model.getBodyBlock()) {
-  //   visitModelBodyOp(&op);
-  // }
   for (auto &op : clock.getBodyBlock()) {
-    visitModelBodyOp(&op);
+    visitClockBodyOp(&op);
   }
 }
 
 void SymbolizePass::visitPassThrough(PassThroughOp pass, ModelOp model) {
-  // for (auto &op : model.getBodyBlock()) {
-  //   visitModelBodyOp(&op);
-  // }
   for (auto &op : pass.getBodyBlock()) {
-    visitModelBodyOp(&op);
+    visitClockBodyOp(&op);
   }
 }
 
@@ -212,6 +219,10 @@ void SymbolizePass::visitDefine(DefineOp define) {
 }
 
 void SymbolizePass::visitModel(ModelOp model) {
+  auto storage = model.getBody().getArgument(0);
+  for (auto &op : model.getBodyBlock()) {
+    visitModelBodyOp(storage, &op);
+  }
   for (auto clock : model.getOps<ClockTreeOp>()) {
     visitClockTree(clock, model);
   }
