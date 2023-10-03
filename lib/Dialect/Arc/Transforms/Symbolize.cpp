@@ -1,5 +1,4 @@
-//===- Symbolize.cpp
-//--------------------------------------------------------===//
+//===- Symbolize.cpp ------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -36,10 +35,11 @@ namespace arc {
 
 using namespace circt;
 using namespace arc;
+using namespace mlir;
 
 namespace {
 struct SymbolizePass : public arc::impl::SymbolizeBase<SymbolizePass> {
-  void visitDefine(DefineOp define);
+  void visitFuncDef(func::FuncOp func);
   void visitModel(ModelOp model);
   void visitClockTree(ClockTreeOp clock, ModelOp model);
   void visitPassThrough(PassThroughOp pass, ModelOp model);
@@ -71,8 +71,8 @@ struct SymbolizePass : public arc::impl::SymbolizeBase<SymbolizePass> {
   void visitHW(hw::ArrayGetOp op);
   void visitHW(hw::AggregateConstantOp op);
 
-  void visitArc(arc::StateOp op);
-  void visitArc(arc::OutputOp op);
+  void visitFunc(func::CallOp op);
+  void visitFunc(func::ReturnOp op);
   void visitArc(arc::StateReadOp op);
   void visitArc(arc::StateWriteOp op);
   void visitArc(arc::MemoryReadOp op);
@@ -114,7 +114,13 @@ mlir::LLVM::LLVMFuncOp SymbolizePass::insertFunc(std::string name,
   return func;
 }
 
-void SymbolizePass::visitComb(comb::AddOp op) {}
+void SymbolizePass::visitComb(comb::AddOp op) {
+  OpBuilder builder(op);
+  auto voidTy = mlir::LLVM::LLVMVoidType::get(op->getContext());
+  auto funcOp = insertFunc("_sym_build_add",
+                           mlir::LLVM::LLVMFunctionType::get(voidTy, {}));
+  builder.create<mlir::LLVM::CallOp>(op.getLoc(), funcOp, ArrayRef<Value>({}));
+}
 void SymbolizePass::visitComb(comb::MulOp op) {}
 void SymbolizePass::visitComb(comb::DivUOp op) {}
 void SymbolizePass::visitComb(comb::DivSOp op) {}
@@ -151,8 +157,9 @@ void SymbolizePass::visitHW(hw::ArrayCreateOp op) {}
 void SymbolizePass::visitHW(hw::ArrayGetOp op) {}
 void SymbolizePass::visitHW(hw::AggregateConstantOp op) {}
 
-void SymbolizePass::visitArc(arc::StateOp op) {}
-void SymbolizePass::visitArc(arc::OutputOp op) {}
+void SymbolizePass::visitFunc(func::CallOp op) {}
+void SymbolizePass::visitFunc(func::ReturnOp op) {}
+
 void SymbolizePass::visitArc(arc::StateReadOp op) {}
 void SymbolizePass::visitArc(arc::StateWriteOp op) {}
 void SymbolizePass::visitArc(arc::MemoryReadOp op) {}
@@ -178,12 +185,12 @@ void SymbolizePass::visitClockBodyOp(Operation *op) {
             comb::AndOp, comb::OrOp, comb::XorOp, comb::ICmpOp, comb::ParityOp,
             comb::ExtractOp, comb::ConcatOp, comb::ReplicateOp, comb::MuxOp>(
           [&](auto op) { visitComb(op); })
-      .Case<arc::StateOp, arc::StateReadOp, arc::StateWriteOp,
+      .Case<arc::StateReadOp, arc::StateWriteOp,
             arc::MemoryWriteOp, arc::MemoryReadOp, arc::ClockGateOp>(
           [&](auto op) { visitArc(op); })
       .Case<hw::ConstantOp, hw::ArrayCreateOp, hw::ArrayGetOp,
             hw::AggregateConstantOp>([&](auto op) { visitHW(op); })
-      .Case<mlir::LLVM::CallOp>([&](auto op) {})
+      .Case<func::CallOp>([&](auto op) {})
       .Default([&](auto op) {
         if (!isa<AllocStateOp, AllocMemoryOp, RootInputOp, RootOutputOp,
                  ClockTreeOp, PassThroughOp>(op))
@@ -203,18 +210,20 @@ void SymbolizePass::visitPassThrough(PassThroughOp pass, ModelOp model) {
   }
 }
 
-void SymbolizePass::visitDefine(DefineOp define) {
-  for (auto &op : define.getBodyBlock()) {
-    TypeSwitch<Operation *>(&op)
-        .Case<comb::AddOp, comb::MulOp, comb::DivUOp, comb::DivSOp,
-              comb::ModUOp, comb::ModSOp, comb::ShlOp, comb::ShrUOp,
-              comb::ShrSOp, comb::SubOp, comb::AndOp, comb::OrOp, comb::XorOp,
-              comb::ICmpOp, comb::ParityOp, comb::ExtractOp, comb::ConcatOp,
-              comb::ReplicateOp, comb::MuxOp>([&](auto op) { visitComb(op); })
-        .Case<arc::StateOp, arc::OutputOp>([&](auto op) { visitArc(op); })
-        .Case<hw::ConstantOp, hw::ArrayCreateOp, hw::ArrayGetOp,
-              hw::AggregateConstantOp>([&](auto op) { visitHW(op); })
-        .Default([&](auto op) { emitOpError(op, "op cannot be exported"); });
+void SymbolizePass::visitFuncDef(func::FuncOp func) {
+  for (auto &block : func.getBody()) {
+    for (auto &op : block.getOperations()) {
+      TypeSwitch<Operation *>(&op)
+          .Case<comb::AddOp, comb::MulOp, comb::DivUOp, comb::DivSOp,
+                comb::ModUOp, comb::ModSOp, comb::ShlOp, comb::ShrUOp,
+                comb::ShrSOp, comb::SubOp, comb::AndOp, comb::OrOp, comb::XorOp,
+                comb::ICmpOp, comb::ParityOp, comb::ExtractOp, comb::ConcatOp,
+                comb::ReplicateOp, comb::MuxOp>([&](auto op) { visitComb(op); })
+          .Case<func::CallOp, func::ReturnOp>([&](auto op) { visitFunc(op); })
+          .Case<hw::ConstantOp, hw::ArrayCreateOp, hw::ArrayGetOp,
+                hw::AggregateConstantOp>([&](auto op) { visitHW(op); })
+          .Default([&](auto op) { emitOpError(op, "op cannot be exported"); });
+    }
   }
 }
 
@@ -236,8 +245,8 @@ void SymbolizePass::runOnOperation() {
 
   LLVM_DEBUG(llvm::dbgs() << "Symbolize PASS\n");
 
-  for (auto op : llvm::make_early_inc_range(module.getOps<DefineOp>())) {
-    visitDefine(op);
+  for (auto op : llvm::make_early_inc_range(module.getOps<func::FuncOp>())) {
+    visitFuncDef(op);
   }
 
   for (auto op : llvm::make_early_inc_range(module.getOps<ModelOp>())) {

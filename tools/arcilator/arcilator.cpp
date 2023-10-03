@@ -268,13 +268,15 @@ static void populatePipeline(PassManager &pm) {
   pm.addPass(createCSEPass());
   pm.addPass(arc::createArcCanonicalizerPass());
 
+  pm.addPass(arc::createLowerArcsToFuncsPass());
+
   if (shouldSymbolize)
     pm.addPass(arc::createSymbolizePass());
 
-  // Allocate states.
   if (untilReached(UntilStateAlloc))
     return;
-  pm.addPass(arc::createLowerArcsToFuncsPass());
+
+  // Allocate states.
   pm.nest<arc::ModelOp>().addPass(arc::createAllocateStatePass());
   if (!stateFile.empty())
     pm.addPass(arc::createPrintStateInfoPass(stateFile));
